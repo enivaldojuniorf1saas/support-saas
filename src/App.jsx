@@ -8,7 +8,8 @@ import { NewTicketPage }      from './pages/NewTicketPage'
 import { DashboardPage }      from './pages/DashboardPage'
 import { ImportPage }         from './pages/ImportPage'
 import { UsersPage }          from './pages/UsersPage'
-import { NpsPage }            from './pages/NpsPage' 
+import { NpsPage }            from './pages/NpsPage'
+import { TrackingPage } from './pages/TrackingPage'
 
 export default function App() {
   return (
@@ -40,6 +41,8 @@ export default function App() {
           <Route path="/equipa" element={
             <ProtectedLayout requireGestor><UsersPage /></ProtectedLayout>
           } />
+          <Route path="/avaliar/:id" element={<NpsPage />} />
+<         Route path="/rastrear" element={<TrackingPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
