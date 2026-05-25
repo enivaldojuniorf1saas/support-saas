@@ -8,6 +8,7 @@ import { TicketDetailPage }   from './pages/TicketDetailPage'
 import { NewTicketPage }      from './pages/NewTicketPage'
 import { DashboardPage }      from './pages/DashboardPage'
 import { ImportPage }         from './pages/ImportPage'
+import { UsersPage }          from './pages/UsersPage'
 
 function ProtectedLayout({ children, requireGestor = false }) {
   return (
@@ -38,6 +39,9 @@ export default function App() {
           } />
           <Route path="/importar" element={
             <ProtectedLayout requireGestor><ImportPage /></ProtectedLayout>
+          } />
+          <Route path="/equipa" element={
+          <ProtectedLayout requireGestor><UsersPage /></ProtectedLayout>
           } />
         </Routes>
       </BrowserRouter>

@@ -1,9 +1,8 @@
 import { supabase } from '../lib/supabase'
 
 export const ticketService = {
-
   async create(payload) {
-    if (!payload?.title)         throw new Error('Título é obrigatório')
+    if (!payload?.title) throw new Error('Título é obrigatório')
     if (!payload?.customer_name) throw new Error('Nome do cliente é obrigatório')
 
     const { data, error } = await supabase
@@ -16,38 +15,30 @@ export const ticketService = {
     return data
   },
 
-  async list({ status, assignedTo, createdBy } = {}) {
+  async list({ status, assignedTo, createdBy, page = 1, pageSize = 10 } = {}) {
     let query = supabase
       .from('tickets')
       .select(`
-        id,
-        ticket_number,
-        title,
-        status,
-        priority,
-        customer_name,
-        customer_email,
-        nps_score,
-        response_time_minutes,
-        resolution_time_minutes,
-        created_at,
+        id, ticket_number, title, status, priority, customer_name, customer_email,
+        nps_score, response_time_minutes, resolution_time_minutes, created_at, updated_at,
+        estado, workflow, solicitante, tipo_chamado, aplicacao, tipo_ticket,
+        tipo_perfil, categoria,
         creator:profiles!created_by(full_name),
         assignee:profiles!assigned_to(full_name)
-      `)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false })
 
-    if (status)     query = query.eq('status', status)
+    if (status) query = query.eq('status', status)
     if (assignedTo) query = query.eq('assigned_to', assignedTo)
-    if (createdBy)  query = query.eq('created_by', createdBy)
+    if (createdBy) query = query.eq('created_by', createdBy)
 
-    const { data, error } = await query
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+    query = query.range(from, to)
 
-    // DEBUG — remover depois
-    console.log('tickets retornados:', data)
-    console.log('erro:', error)
-
+    const { data, error, count } = await query
     if (error) throw error
-    return data
+    return { data, count }
   },
 
   async getById(id) {
@@ -57,8 +48,8 @@ export const ticketService = {
         *,
         creator:profiles!created_by(full_name, role),
         assignee:profiles!assigned_to(full_name, role),
-        history:ticket_history(*, agent:profiles(full_name))
-      `)
+        history:ticket_history(*, agent:profiles!changed_by(full_name)) 
+      `) // <-- Garanta que tem o !changed_by aqui também
       .eq('id', id)
       .single()
 
@@ -67,49 +58,77 @@ export const ticketService = {
   },
 
   async updateStatus(id, newStatus) {
-    const VALID_TRANSITIONS = {
-      ABERTO:             ['EM_ATENDIMENTO'],
-      EM_ATENDIMENTO:     ['AGUARDANDO_CLIENTE', 'RESOLVIDO'],
-      AGUARDANDO_CLIENTE: ['EM_ATENDIMENTO', 'RESOLVIDO'],
-      RESOLVIDO:          ['FECHADO'],
-      FECHADO:            [],
-    }
-
-    const { data: current, error: fetchError } = await supabase
-      .from('tickets')
-      .select('status')
-      .eq('id', id)
-      .single()
-
-    if (fetchError) throw fetchError
-
-    if (!VALID_TRANSITIONS[current.status]?.includes(newStatus)) {
-      throw new Error(`Transição inválida: ${current.status} → ${newStatus}`)
-    }
-
     const { data, error } = await supabase
       .from('tickets')
       .update({ status: newStatus })
       .eq('id', id)
       .select()
       .single()
+    if (error) throw error
+    return data
+  },
+
+  // NOVO: Função para atualizar o Estado de Desenvolvimento
+  async updateEstado(id, novoEstado) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ estado: novoEstado })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async assignTicket(ticketId, agentId) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ assigned_to: agentId })
+      .eq('id', ticketId)
+      .select('*, assignee:profiles!assigned_to(full_name, role)')
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // 3. Sistema de Comentários / Interações
+  async addComment(ticketId, userId, note, newStatus = null) {
+    const payload = {
+      ticket_id: ticketId,
+      changed_by: userId,
+      note: note,
+    }
+    
+    // Só envia o new_status se ele realmente existir (mudança de status)
+    if (newStatus) {
+      payload.new_status = newStatus
+    }
+
+    const { data, error } = await supabase
+      .from('ticket_history')
+      .insert(payload)
+      .select('*, agent:profiles!changed_by(full_name)')
+      .single()
 
     if (error) throw error
     return data
   },
 
-  async closeWithNps(id, { nps_score, nps_comment }) {
-    if (nps_score === undefined || nps_score < 0 || nps_score > 10) {
-      throw new Error('NPS deve estar entre 0 e 10')
-    }
+  async importTickets(ticketsData) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .insert(ticketsData)
+    if (error) throw error
+    return data
+  },
 
+  async closeWithNps(id, { nps_score, nps_comment }) {
     const { data, error } = await supabase
       .from('tickets')
       .update({ status: 'FECHADO', nps_score, nps_comment })
       .eq('id', id)
       .select()
       .single()
-
     if (error) throw error
     return data
   },
