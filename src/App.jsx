@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider }       from './context/AuthContext'
-import { ProtectedRoute }     from './components/ProtectedRoute'
-import { Layout }             from './components/Layout'
+import { ProtectedLayout }    from './components/Layout'
 import { LoginPage }          from './pages/LoginPage'
 import { TicketListPage }     from './pages/TicketListPage'
 import { TicketDetailPage }   from './pages/TicketDetailPage'
@@ -9,14 +8,7 @@ import { NewTicketPage }      from './pages/NewTicketPage'
 import { DashboardPage }      from './pages/DashboardPage'
 import { ImportPage }         from './pages/ImportPage'
 import { UsersPage }          from './pages/UsersPage'
-
-function ProtectedLayout({ children, requireGestor = false }) {
-  return (
-    <ProtectedRoute requireGestor={requireGestor}>
-      <Layout>{children}</Layout>
-    </ProtectedRoute>
-  )
-}
+import { NpsPage }            from './pages/NpsPage' 
 
 export default function App() {
   return (
@@ -25,6 +17,11 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<Navigate to="/chamados" replace />} />
+          
+          {/* 2. ROTA PÚBLICA DE AVALIAÇÃO (Fora do ProtectedLayout) */}
+          <Route path="/avaliar/:id" element={<NpsPage />} />
+          
+          {/* ROTAS PROTEGIDAS */}
           <Route path="/chamados" element={
             <ProtectedLayout><TicketListPage /></ProtectedLayout>
           } />
@@ -41,7 +38,7 @@ export default function App() {
             <ProtectedLayout requireGestor><ImportPage /></ProtectedLayout>
           } />
           <Route path="/equipa" element={
-          <ProtectedLayout requireGestor><UsersPage /></ProtectedLayout>
+            <ProtectedLayout requireGestor><UsersPage /></ProtectedLayout>
           } />
         </Routes>
       </BrowserRouter>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ticketService } from '../services/ticketService'
 import { StatusBadge } from '../components/StatusBadge'
 import { useAuthContext } from '../context/AuthContext'
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, ClipboardIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
@@ -32,15 +32,15 @@ export function TicketListPage() {
   const [filter, setFilter] = useState('')
   const [search, setSearch] = useState('')
   
-  // Controle de Paginação
+  // Estado para controlar qual ID de chamado acabou de ter o link copiado (efeito visual do botão)
+  const [copiedId, setCopiedId] = useState(null)
+  
   const [page, setPage] = useState(1)
   const pageSize = 10
 
-  // Aqui usamos o useEffect corretamente (sem o 'u' extra)
   useEffect(() => {
     setLoading(true)
     
-    // Função para buscar os chamados
     const fetchTickets = () => {
       ticketService.list({ status: filter || undefined, page, pageSize })
         .then((res) => {
@@ -52,17 +52,30 @@ export function TicketListPage() {
 
     fetchTickets()
 
-    // Atualização em Tempo Real (Realtime)
     const channel = supabase.channel('tickets_list_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, (payload) => {
         console.log('Alteração recebida no Supabase:', payload)
-        fetchTickets() // Recarrega a tabela automaticamente
+        fetchTickets()
       })
       .subscribe()
 
-    // Limpa a escuta quando o utilizador sair da página
     return () => { supabase.removeChannel(channel) }
   }, [page, filter])
+
+  // 🚀 FUNÇÃO PARA COPIAR O LINK DO NPS AUTOMATICAMENTE
+  const handleCopyLink = (ticketId) => {
+    // Monta o link público com base na URL atual do sistema
+    const urlPublica = `${window.location.origin}/avaliar/${ticketId}`
+    
+    // Copia nativamente para a área de transferência
+    navigator.clipboard.writeText(urlPublica).then(() => {
+      setCopiedId(ticketId)
+      // Após 2 segundos, volta o ícone original do botão
+      setTimeout(() => setCopiedId(null), 2000)
+    }).catch(err => {
+      console.error('Erro ao copiar link:', err)
+    })
+  }
 
   const filtered = tickets.filter(t => {
     const matchSearch = search
@@ -113,7 +126,7 @@ export function TicketListPage() {
       ) : (
         <>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
-            <table className="w-full min-w-[1300px] text-sm">
+            <table className="w-full min-w-[1400px] text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 w-24">ID</th>
@@ -125,48 +138,84 @@ export function TicketListPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Finalização</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">T. Atend.</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">NPS</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-500 w-32">Link NPS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map(ticket => (
-                  <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3"><span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{ticket.ticket_number ?? '—'}</span></td>
-                    <td className="px-4 py-3"><Link to={`/chamados/${ticket.id}`} className="text-blue-600 hover:underline font-medium">{ticket.title}</Link></td>
-                    <td className="px-4 py-3 text-gray-600">{ticket.customer_name}</td>
-                    <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
-                    
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getEstadoClass(ticket.estado)}`}>
-                        {ticket.estado || '—'}
-                      </span>
-                    </td>
-                    
-                    <td className="px-4 py-3 text-gray-400 text-xs">
-                        {format(new Date(ticket.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
-                        {(ticket.status === 'FECHADO' || ticket.status === 'RESOLVIDO') && ticket.updated_at
-                            ? format(new Date(ticket.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })
-                            : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                        {ticket.resolution_time_minutes != null 
-                            ? `${ticket.resolution_time_minutes} min` 
-                            : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                        {ticket.nps_score != null ? (
-                            <span className={`font-bold text-sm ${
-                                ticket.nps_score >= 9 ? 'text-green-600' :
-                                ticket.nps_score >= 7 ? 'text-yellow-600' :
-                                'text-red-600'
-                            }`}>
-                                {ticket.nps_score}
-                            </span>
-                        ) : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(ticket => {
+                  // O botão só fica ativo quando o chamado for Resolvido ou Fechado
+                  const isEligibleForNps = ['RESOLVIDO', 'FECHADO'].includes(ticket.status)
+                  
+                  return (
+                    <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3"><span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{ticket.ticket_number ?? '—'}</span></td>
+                      <td className="px-4 py-3"><Link to={`/chamados/${ticket.id}`} className="text-blue-600 hover:underline font-medium">{ticket.title}</Link></td>
+                      <td className="px-4 py-3 text-gray-600">{ticket.customer_name}</td>
+                      <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
+                      
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getEstadoClass(ticket.estado)}`}>
+                          {ticket.estado || '—'}
+                        </span>
+                      </td>
+                      
+                      <td className="px-4 py-3 text-gray-400 text-xs">
+                          {format(new Date(ticket.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">
+                          {(ticket.status === 'FECHADO' || ticket.status === 'RESOLVIDO') && ticket.updated_at
+                              ? format(new Date(ticket.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })
+                              : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                          {ticket.resolution_time_minutes != null 
+                              ? `${ticket.resolution_time_minutes} min` 
+                              : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                          {ticket.nps_score != null ? (
+                              <span className={`font-bold text-sm ${
+                                  ticket.nps_score >= 9 ? 'text-green-600' :
+                                  ticket.nps_score >= 7 ? 'text-yellow-600' :
+                                  'text-red-600'
+                              }`}>
+                                  {ticket.nps_score}
+                              </span>
+                          ) : '—'}
+                      </td>
+
+                      {/* 🚀 NOVA COLUNA: BOTÃO COPIAR LINK DINÂMICO */}
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          disabled={!isEligibleForNps}
+                          onClick={() => handleCopyLink(ticket.id)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200 shadow-sm
+                            ${!isEligibleForNps 
+                              ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed' 
+                              : copiedId === ticket.id
+                                ? 'bg-green-50 text-green-700 border-green-300'
+                                : 'bg-white text-blue-600 border-gray-300 hover:bg-blue-50 hover:border-blue-300'
+                            }`}
+                          title={!isEligibleForNps ? "Disponível apenas para chamados finalizados ou resolvidos" : "Copiar link de avaliação"}
+                        >
+                          {copiedId === ticket.id ? (
+                            <>
+                              <ClipboardDocumentCheckIcon className="w-4 h-4 text-green-600" />
+                              <span>Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ClipboardIcon className="w-4 h-4" />
+                              <span>Copiar</span>
+                            </>
+                          )}
+                        </button>
+                      </td>
+
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
