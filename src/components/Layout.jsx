@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { Sidebar } from './Sidebar'
-import { useAuthContext } from '../context/AuthContext'
+import { Sidebar } from './Sidebar' // <-- Corrigido para a mesma pasta
+import { useAuthContext } from '../context/AuthContext' // <-- Corrigido para subir uma pasta
 
 export function ProtectedLayout({ children, requireGestor }) {
   const { user, isGestor, loading } = useAuthContext()

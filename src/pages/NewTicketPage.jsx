@@ -203,27 +203,7 @@ export function NewTicketPage() {
                         <textarea {...register('description')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-blue-500" />
                     </div>
 
-                    <hr className="border-gray-100" />
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Dados do Cliente</p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
-                            <input {...register('customer_name')} className={`w-full border rounded-lg px-3 py-2 text-sm ${errors.customer_name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                            <input {...register('customer_email')} type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                            <input {...register('customer_phone')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                        </div>
-                    </div>
-
-                    <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                        {isSubmitting ? 'Criando...' : 'Criar Chamado'}
-                    </button>
+                    
                 </form>
             </div>
         </div>
