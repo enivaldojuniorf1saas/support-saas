@@ -1,14 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 
+// No Vite, a leitura correta de variáveis de ambiente é através do 'import.meta.env'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Variáveis de ambiente do Supabase não configuradas.')
+// Sistema de diagnóstico automático no Console (F12) para garantir que o .env foi lido
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(
+    '🚨 ERRO CRÍTICO NO FRONTEND: O Vite não conseguiu ler o seu arquivo .env.local! ' +
+    'Verifique se o arquivo está na raiz do projeto e reinicie o terminal.'
+  )
+} else {
+  console.log('✅ Conexão com o Supabase configurada com sucesso!')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
-console.log('SUPABASE:', {
-    url: supabaseUrl,
-    key: supabaseKey ? `${supabaseKey.slice(0, 10)}...${supabaseKey.slice(-4)}` : 'undefined'
-})
+// Inicializa e exporta o cliente oficial
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)

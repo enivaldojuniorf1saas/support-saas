@@ -17,13 +17,15 @@ export function LoginPage() {
     })
 
     const onSubmit = async (values) => {
-        try {
-            await signIn(values)
-            navigate('/chamados')
-        } catch {
-            setError('root', { message: 'E-mail ou senha inválidos' })
-        }
+    console.log("Valores que saíram do formulário:", values) // 🕵️‍♂️ Adicione isso para inspecionar
+    try {
+        // Se o seu useAuth espera { email, password }, certifique-se de que o values tem exatamente essas chaves.
+        await signIn(values)
+        navigate('/chamados')
+    } catch {
+        setError('root', { message: 'E-mail ou senha inválidos' })
     }
+}
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

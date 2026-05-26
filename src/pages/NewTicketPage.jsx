@@ -128,10 +128,21 @@ export function NewTicketPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Solicitante</label>
-                            <select {...register('solicitante')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                {Array.from({ length: 8 }, (_, i) => (
-                                    <option key={i} value={`Solicitante ${i + 1}`}>Solicitante {i + 1}</option>
-                                ))}
+                            <select {...register('Licença')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                                <option value="selectOption"> Selecione a Licença</option>
+                                <option value="7serv">7Serv</option>
+                                <option value="7facilite">7acilite</option>
+                                <option value="AminBeneficios">AminBeneficioss</option>
+                                <option value="Axis">Axis Card</option>
+                                <option value="Bflux">Bflux Gestão</option>
+                                <option value="ConexosCard">Conexos Card</option>
+                                <option value="FrotappSolucoes">Frotapp Solucoes</option>
+                                <option value="IntechBeneficios">Intech Beneficios</option>
+                                <option value="NexosCard">Nexos Card</option>
+                                <option value="Paybeneficios">Pay Beneficios</option>
+                                <option value="Syncmax">Syncmax</option>
+                                <option value="UnyBeneficios">Uny Beneficios</option>
+
                             </select>
                         </div>
 
@@ -147,7 +158,8 @@ export function NewTicketPage() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                             <select {...register('estado')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
                                 {['A iniciar', 'A priorizar', 'Em Desenvolvimento', 'Em revisão', 'Em validação', 'Priorizado', 'Pronto'].map(est => (
-                                    <option key={est} value={est}>{est}</option>
+                                   
+                                   <option key={est} value={est}>{est}</option>
                                 ))}
                             </select>
                         </div>
@@ -201,6 +213,57 @@ export function NewTicketPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                         <textarea {...register('description')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    {/* Dados do Cliente */}
+                    <div className="border-t border-gray-100 pt-6">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Dados do Cliente</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nome do Cliente <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    {...register('customer_name')}
+                                    placeholder="Nome completo"
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 ${errors.customer_name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                />
+                                {errors.customer_name && <p className="text-red-500 text-xs mt-1">{errors.customer_name.message}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                                <input
+                                    {...register('customer_email')}
+                                    type="email"
+                                    placeholder="cliente@email.com"
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                <input
+                                    {...register('customer_phone')}
+                                    placeholder="(85) 99999-9999"
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Botão de Submit */}
+                    <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-6">
+                        <Link
+                            to="/chamados"
+                            className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                            Cancelar
+                        </Link>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                            {isSubmitting ? 'Salvando...' : 'Salvar Chamado'}
+                        </button>
                     </div>
 
                     
