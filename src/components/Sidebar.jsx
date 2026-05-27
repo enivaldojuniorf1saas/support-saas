@@ -16,7 +16,7 @@ import {
 const navItems = [
   { to: '/chamados',      label: 'Chamados',      icon: TicketIcon,       role: 'all' },
   { to: '/chamados/novo', label: 'Novo Chamado',  icon: PlusCircleIcon,   role: 'all' },
-  { to: '/equipa',        label: 'Equipa',        icon: UsersIcon,        role: 'gestor' },
+  { to: '/equipa',        label: 'Equipe',        icon: UsersIcon,        role: 'gestor' },
   { to: '/dashboard',     label: 'Dashboard',     icon: ChartBarIcon,     role: 'gestor' },
   { to: '/importar',      label: 'Importar CSV',  icon: ArrowUpTrayIcon,  role: 'gestor' },
 ]
