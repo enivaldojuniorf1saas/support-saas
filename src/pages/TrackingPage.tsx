@@ -103,7 +103,14 @@ export function TrackingPage() {
               <MagnifyingGlassIcon className="w-5 h-5" />
               {loading ? 'Buscando...' : 'Rastrear Chamado'}
             </button>
+
+            <br />
+
+            
           </form>
+              <button className="w-full bg-sky-100 text-blue-600 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors">
+                <a href='https://support-saas-five.vercel.app/login'>Voltar para Login</a>
+              </button>
         </div>
       )}
 

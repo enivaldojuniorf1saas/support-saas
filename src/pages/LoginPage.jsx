@@ -76,12 +76,14 @@ export function LoginPage() {
                     <button className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
                        Esqueci minha senha
                     </button>
-                    
-                </form>
+
                     <br />
                     <button className="w-full bg-sky-100 text-blue-600 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors">
                        <a href='https://support-saas-five.vercel.app/rastrear'>Rastrear Chamado</a>
                     </button>
+                    
+                </form>
+                    
                     
             </div>
         </div>
