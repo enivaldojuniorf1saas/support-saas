@@ -3,7 +3,14 @@ import Papa from 'papaparse'
 import { useNavigate, Link } from 'react-router-dom'
 import { ticketService } from '../services/ticketService'
 import { useAuthContext } from '../context/AuthContext'
-import { ArrowUpTrayIcon, DocumentTextIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowLeftIcon } from 'lucide-react'
+// CORREÇÃO CRÍTICA: Importando os ícones corretos da biblioteca correta para passar no Vite Build
+import { 
+  ArrowUpTrayIcon, 
+  DocumentTextIcon, 
+  CheckCircleIcon, 
+  ExclamationTriangleIcon, 
+  ArrowLeftIcon 
+} from '@heroicons/react/24/outline'
 
 export function ImportPage() {
   const { user } = useAuthContext()
@@ -12,7 +19,7 @@ export function ImportPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
 
-  // 1. CONVERSOR DE DATAS: Garante o acompanhamento mensal perfeito convertendo para timestamp ISO do Postgres
+  // CONVERSOR DE DATAS: Garante o acompanhamento mensal perfeito convertendo para timestamp ISO do Postgres
   const parseCSVDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString()
     try {
@@ -25,7 +32,7 @@ export function ImportPage() {
     }
   }
 
-  // 2. NORMALIZADORES ESTREITOS: Garantem correspondência exata com o Zod / Enums do Banco de Dados
+  // NORMALIZADORES ESTREITOS: Garantem correspondência exata com o Zod / Enums do Banco de Dados
   const normalizeTipoChamado = (val) => {
     if (!val) return 'Bug'
     const s = val.toString().trim().toLowerCase()
@@ -51,7 +58,7 @@ export function ImportPage() {
     if (s.includes('licenciado')) return 'Licenciado'
     if (s.includes('beneficiário') || s.includes('beneficiario')) return 'Beneficiário'
     if (s.includes('operador')) return 'Operador da organização'
-    if (s.includes('adm')) return 'Adm organization'
+    if (s.includes('adm')) return 'Adm organização'
     return 'Cliente'
   }
 
@@ -92,7 +99,7 @@ export function ImportPage() {
 
     Papa.parse(file, {
       header: false,
-      delimiter: ';', // CORREÇÃO CRÍTICA: Força o uso do delimitador correto ignorando falhas de detecção
+      delimiter: ';', 
       skipEmptyLines: 'greedy',
       complete: async (results) => {
         try {
@@ -102,7 +109,6 @@ export function ImportPage() {
             throw new Error('O arquivo selecionado está vazio.')
           }
 
-          // MECANISMO AUTO-HEALER: Se o PapaParse falhou em quebrar a linha, quebramos manualmente aqui
           const rows = rawRows.map(row => {
             if (row.length === 1 && row[0]?.toString().includes(';')) {
               return row[0].toString().split(';')
@@ -110,7 +116,6 @@ export function ImportPage() {
             return row
           })
           
-          // LOCALIZADOR DE CABEÇALHOS: Varre o arquivo procurando a linha real de colunas
           const headerRowIndex = rows.findIndex(row => 
             row.some(cell => cell && (
               cell.toString().includes('created_at') || 
@@ -125,7 +130,6 @@ export function ImportPage() {
           const headers = rows[headerRowIndex].map(h => h ? h.toString().trim() : '')
           const dataRows = rows.slice(headerRowIndex + 1)
 
-          // Conversão de matriz de dados em objetos indexados pelas chaves da planilha
           const ticketsToInsert = dataRows
             .map(row => {
               const item = {}
@@ -134,9 +138,7 @@ export function ImportPage() {
               })
               return item
             })
-            // Valida apenas registros que possuem nome do cliente preenchido
             .filter(item => item.customer_name && item.customer_name.toString().trim() !== '')
-            // Conversão estrutural direta para o Schema do seu NewTicketPage e tabelas do banco
             .map((item) => {
               const cliente = item.customer_name.toString().trim()
               const descricao = item.Description || 'Sem descrição informada.'
@@ -162,7 +164,6 @@ export function ImportPage() {
                 categoria: normalizeCategoria(item.categoria),
                 tipo_ticket: normalizeTipoChamado(rawTipo) === 'Bug' ? 'BUG' : 'FEATURE',
                 
-                // PRESERVAÇÃO CRÍTICA DO HISTÓRICO MENSAL
                 created_at: parseCSVDate(item.created_at),
                 created_by: user.id
               }
@@ -172,7 +173,6 @@ export function ImportPage() {
             throw new Error('Nenhum registro válido em conformidade foi extraído do arquivo.')
           }
 
-          // Envia o lote de dados higienizados para o backend do Supabase
           await ticketService.importTickets(ticketsToInsert)
           setResult({ success: ticketsToInsert.length })
         } catch (err) {
