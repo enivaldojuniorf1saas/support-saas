@@ -4,6 +4,7 @@ import { MagnifyingGlassIcon, TicketIcon, BuildingOfficeIcon } from '@heroicons/
 import { StatusBadge } from '../components/StatusBadge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { href, Link } from 'react-router-dom'
 
 export function TrackingPage() {
   const [ticketNumber, setTicketNumber] = useState('')
@@ -108,9 +109,12 @@ export function TrackingPage() {
 
             
           </form>
-              <button className="w-full bg-sky-100 text-blue-600 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors">
-                <a href='https://support-saas-five.vercel.app/login'>Voltar para Login</a>
-              </button>
+              <Link 
+              to="/login"
+              className='className="w-full flex items-center justify-center gap-2 text-blue-600 py-3 rounded-xl font-bold transition disabled:opacity-50"'
+              >
+                Voltar para login
+              </Link>
         </div>
       )}
 
