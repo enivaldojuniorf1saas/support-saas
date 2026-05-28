@@ -15,7 +15,8 @@ export const ticketService = {
     return data
   },
 
-  async list({ status, assignedTo, createdBy, page = 1, pageSize = 10 } = {}) {
+  // 🔄 ATUALIZADO: Agora aceita o parâmetro 'search' para busca via URL/Input
+  async list({ status, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
     let query = supabase
       .from('tickets')
       .select(`
@@ -26,7 +27,12 @@ export const ticketService = {
         creator:profiles!created_by(full_name),
         assignee:profiles!assigned_to(full_name)
       `, { count: 'exact' })
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }) // Condição 1: Organização decrescente garantida
+
+    // Condição 2: Se houver termo de busca, filtra por Título ou Nome do Cliente (ilike ignora maiúsculas/minúsculas)
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,customer_name.ilike.%${search}%`)
+    }
 
     if (status) query = query.eq('status', status)
     if (assignedTo) query = query.eq('assigned_to', assignedTo)
@@ -49,7 +55,7 @@ export const ticketService = {
         creator:profiles!created_by(full_name, role),
         assignee:profiles!assigned_to(full_name, role),
         history:ticket_history(*, agent:profiles!changed_by(full_name)) 
-      `) // <-- Garanta que tem o !changed_by aqui também
+      `) // <-- Mantido o operador de relacionamento explícito (!changed_by)
       .eq('id', id)
       .single()
 
@@ -68,7 +74,7 @@ export const ticketService = {
     return data
   },
 
-  // NOVO: Função para atualizar o Estado de Desenvolvimento
+  // Novo: Função para atualizar o Estado de Desenvolvimento
   async updateEstado(id, novoEstado) {
     const { data, error } = await supabase
       .from('tickets')
@@ -91,7 +97,7 @@ export const ticketService = {
     return data
   },
 
-  // 3. Sistema de Comentários / Interações
+  // Sistema de Comentários / Interações
   async addComment(ticketId, userId, note, newStatus = null) {
     const payload = {
       ticket_id: ticketId,
