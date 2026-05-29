@@ -15,7 +15,7 @@ export const ticketService = {
     return data
   },
 
-  // 🔄 ATUALIZADO: Agora aceita o parâmetro 'search' para busca via URL/Input
+  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" (Filtra enquanto digita)
   async list({ status, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
     let query = supabase
       .from('tickets')
@@ -27,11 +27,22 @@ export const ticketService = {
         creator:profiles!created_by(full_name),
         assignee:profiles!assigned_to(full_name)
       `, { count: 'exact' })
-      .order('created_at', { ascending: false }) // Condição 1: Organização decrescente garantida
+      .order('created_at', { ascending: false }) 
 
-    // Condição 2: Se houver termo de busca, filtra por Título ou Nome do Cliente (ilike ignora maiúsculas/minúsculas)
+    // 🎯 A MÁGICA DA UX AQUI:
     if (search) {
-      query = query.or(`title.ilike.%${search}%,customer_name.ilike.%${search}%`)
+      const cleanSearch = search.replace('#', '').trim()
+      const isNumeric = /^\d+$/.test(cleanSearch)
+      
+      if (isNumeric) {
+        // Se estiver digitando números, busca PARCIALMENTE no ticket.
+        // O "::text" converte o número no banco para texto instantaneamente, 
+        // permitindo que o .ilike funcione sem quebrar o sistema.
+        query = query.ilike('ticket_number::text', `%${cleanSearch}%`)
+      } else {
+        // Se tiver letras, busca por título ou cliente
+        query = query.or(`title.ilike.%${cleanSearch}%,customer_name.ilike.%${cleanSearch}%`)
+      }
     }
 
     if (status) query = query.eq('status', status)
@@ -55,7 +66,7 @@ export const ticketService = {
         creator:profiles!created_by(full_name, role),
         assignee:profiles!assigned_to(full_name, role),
         history:ticket_history(*, agent:profiles!changed_by(full_name)) 
-      `) // <-- Mantido o operador de relacionamento explícito (!changed_by)
+      `) 
       .eq('id', id)
       .single()
 
@@ -74,7 +85,6 @@ export const ticketService = {
     return data
   },
 
-  // Novo: Função para atualizar o Estado de Desenvolvimento
   async updateEstado(id, novoEstado) {
     const { data, error } = await supabase
       .from('tickets')
@@ -97,7 +107,6 @@ export const ticketService = {
     return data
   },
 
-  // Sistema de Comentários / Interações
   async addComment(ticketId, userId, note, newStatus = null) {
     const payload = {
       ticket_id: ticketId,
@@ -105,7 +114,6 @@ export const ticketService = {
       note: note,
     }
     
-    // Só envia o new_status se ele realmente existir (mudança de status)
     if (newStatus) {
       payload.new_status = newStatus
     }
@@ -137,5 +145,5 @@ export const ticketService = {
       .single()
     if (error) throw error
     return data
-  },
+  }
 }

@@ -20,7 +20,6 @@ export function TicketListPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   
-  // Controles de animação para os botões de cópia
   const [copiedTicketId, setCopiedTicketId] = useState(null)
   const [copiedNpsId, setCopiedNpsId] = useState(null)
   
@@ -50,6 +49,7 @@ export function TicketListPage() {
     setSearchParams({ search: searchQuery, page: newPage.toString() })
   }
 
+  // Essa é a função que dispara o filtro a cada tecla digitada (em tempo real)
   const handleSearchChange = (e) => {
     const value = e.target.value
     if (value) {
@@ -60,7 +60,6 @@ export function TicketListPage() {
     }
   }
 
-  // 1. UTILITÁRIO: Copiar Texto Padrão de ABERTURA para WhatsApp
   const copyTicketOpenToWhatsApp = (ticket) => {
     const text = `Olá! 🚀\n\nO seu chamado *#${ticket.ticket_number || 'S/N'}* foi registrado com sucesso em nosso sistema.\n\n📌 *Resumo:*\n*Cliente:* ${ticket.customer_name}\n*Título:* ${ticket.title}\n\nNossa equipe já está analisando a sua solicitação. Qualquer dúvida, é só nos chamar por aqui!`;
     navigator.clipboard.writeText(text);
@@ -68,7 +67,6 @@ export function TicketListPage() {
     setTimeout(() => setCopiedTicketId(null), 2000);
   }
 
-  // 2. UTILITÁRIO: Copiar Texto Padrão de PEDIDO DE NPS para WhatsApp
   const copyNpsRequestToWhatsApp = (ticket) => {
     const text = `Olá! ✅\n\nPassando para avisar que o seu chamado *#${ticket.ticket_number || 'S/N'}* ("${ticket.title}") foi concluído!\n\nPara continuarmos melhorando nosso atendimento, gostaríamos muito de saber como foi a sua experiência.\n\nVocê poderia nos avaliar rapidamente através do link abaixo?\n👉 *[ INSERIR O LINK DA PESQUISA AQUI ]*\n\nAgradecemos a parceria!`;
     navigator.clipboard.writeText(text);
@@ -76,7 +74,6 @@ export function TicketListPage() {
     setTimeout(() => setCopiedNpsId(null), 2000);
   }
 
-  // Cores dinâmicas para a nota do NPS
   const getNpsBadgeColor = (score) => {
     if (!score && score !== 0) return 'bg-gray-50 text-gray-400 border-gray-100'
     if (score >= 9) return 'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -87,7 +84,6 @@ export function TicketListPage() {
   const totalPages = Math.ceil(totalCount / pageSize)
 
   return (
-    // AJUSTE 1: max-w-full e px-8 para a tela abraçar o conteúdo inteiro e evitar scroll
     <div className="p-4 md:p-8 w-full max-w-full mx-auto bg-gray-50/50 min-h-screen">
       
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -123,7 +119,7 @@ export function TicketListPage() {
             type="text"
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Filtrar por título do chamado ou licença..."
+            placeholder="Comece a digitar o nº do ticket para filtrar..."
             className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400 transition"
           />
         </div>
@@ -140,7 +136,6 @@ export function TicketListPage() {
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs overflow-hidden">
           
-          {/* AJUSTE 1: Removida a trava de texto única para permitir quebras de linha (evita barra de rolagem) */}
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -161,7 +156,6 @@ export function TicketListPage() {
                 {tickets.map((ticket) => (
                   <tr key={ticket.id} className="hover:bg-gray-50/50 transition-colors">
                     
-                    {/* COLUNA TICKET COM BOTÃO WHATSAPP */}
                     <td className="p-4 align-middle">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-md">
@@ -185,12 +179,10 @@ export function TicketListPage() {
                       </div>
                     </td>
                     
-                    {/* CLIENTE (Texto permite quebra) */}
                     <td className="p-4 align-middle font-bold text-gray-900 break-words">
                       {ticket.customer_name}
                     </td>
                     
-                    {/* TÍTULO COM LINK CLICÁVEL (Texto permite quebra) */}
                     <td className="p-4 align-middle text-gray-600 break-words leading-relaxed">
                       <Link 
                         to={`/chamados/${ticket.id}`} 
@@ -201,7 +193,6 @@ export function TicketListPage() {
                       </Link>
                     </td>
                     
-                    {/* STATUS */}
                     <td className="p-4 align-middle text-center">
                       <span className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-full border ${
                         ticket.status === 'FECHADO' 
@@ -212,7 +203,6 @@ export function TicketListPage() {
                       </span>
                     </td>
                     
-                    {/* ESTADO */}
                     <td className="p-4 align-middle text-center">
                       <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-lg border ${
                         ticket.workflow === 'Pronto' || ticket.estado === 'Pronto'
@@ -223,12 +213,10 @@ export function TicketListPage() {
                       </span>
                     </td>
                     
-                    {/* TIPO */}
                     <td className="p-4 align-middle text-xs font-semibold text-gray-500">
                       {ticket.tipo_chamado || 'Suporte técnico'}
                     </td>
                     
-                    {/* DATAS */}
                     <td className="p-4 align-middle text-xs font-normal text-gray-500">
                       {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('pt-BR') : '---'}
                       <span className="block text-[10px] text-gray-400 font-medium mt-0.5">
@@ -243,14 +231,12 @@ export function TicketListPage() {
                       </span>
                     </td>
                     
-                    {/* NPS */}
                     <td className="p-4 align-middle text-center">
                       <span className={`inline-block px-3 py-1 rounded-md border text-xs font-bold ${getNpsBadgeColor(ticket.nps_score)}`}>
                         {ticket.nps_score || ticket.nps_score === 0 ? ticket.nps_score : '---'}
                       </span>
                     </td>
                     
-                    {/* AÇÕES (PEDIDO DE NPS) */}
                     <td className="p-4 align-middle text-center">
                       <button
                         type="button"

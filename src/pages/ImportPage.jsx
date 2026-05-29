@@ -3,7 +3,6 @@ import Papa from 'papaparse'
 import { useNavigate, Link } from 'react-router-dom'
 import { ticketService } from '../services/ticketService'
 import { useAuthContext } from '../context/AuthContext'
-// CORREÇÃO CRÍTICA: Importando os ícones corretos da biblioteca correta para passar no Vite Build
 import { 
   ArrowUpTrayIcon, 
   DocumentTextIcon, 
@@ -19,20 +18,47 @@ export function ImportPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
 
-  // CONVERSOR DE DATAS: Garante o acompanhamento mensal perfeito convertendo para timestamp ISO do Postgres
+  // 1. CONVERSOR DE DATAS TURBINADO: Protege contra anos curtos (24 -> 2024) e falta de segundos
+  // 1. CONVERSOR DE DATAS SUPER INTELIGENTE: Lê Brasileiro, Americano, anos curtos e ajusta segundos
   const parseCSVDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString()
     try {
       const [datePart, timePart] = dateStr.trim().split(' ')
-      const [day, month, year] = datePart.split('/')
-      const time = timePart || '00:00:00'
+      const parts = datePart.split('/')
+      
+      let day, month, yearRaw;
+
+      // IDENTIFICADOR AUTOMÁTICO DE PADRÃO (Americano vs Brasileiro)
+      if (Number(parts[1]) > 12) {
+        // Se o número do meio for maior que 12, COM CERTEZA é formato Americano (MM/DD/YYYY)
+        month = parts[0]
+        day = parts[1]
+        yearRaw = parts[2]
+      } else {
+        // Caso contrário, assume como Padrão Brasileiro (DD/MM/YYYY)
+        day = parts[0]
+        month = parts[1]
+        yearRaw = parts[2]
+      }
+      
+      // Se o Excel exportou o ano como "24" ou "26", nós forçamos a virar "2024" / "2026"
+      const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw
+
+      // Tratamento de horas sem segundos
+      let time = timePart || '00:00:00'
+      if (time.split(':').length === 2) {
+        time = `${time}:00`
+      }
+
+      // Devolve para o Supabase no formato ISO perfeito (YYYY-MM-DDTHH:mm:ss)
       return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time}`
     } catch (e) {
+      console.warn("Falha ao analisar data:", dateStr, "- Usando data atual.")
       return new Date().toISOString()
     }
   }
 
-  // NORMALIZADORES ESTREITOS: Garantem correspondência exata com o Zod / Enums do Banco de Dados
+  // NORMALIZADORES ESTREITOS
   const normalizeTipoChamado = (val) => {
     if (!val) return 'Bug'
     const s = val.toString().trim().toLowerCase()
@@ -103,19 +129,13 @@ export function ImportPage() {
       skipEmptyLines: 'greedy',
       complete: async (results) => {
         try {
-          let rawRows = results.data
+          const rows = results.data
 
-          if (!rawRows || rawRows.length === 0) {
+          if (!rows || rows.length === 0) {
             throw new Error('O arquivo selecionado está vazio.')
           }
-
-          const rows = rawRows.map(row => {
-            if (row.length === 1 && row[0]?.toString().includes(';')) {
-              return row[0].toString().split(';')
-            }
-            return row
-          })
           
+          // LOCALIZADOR DE CABEÇALHOS INTELIGENTE
           const headerRowIndex = rows.findIndex(row => 
             row.some(cell => cell && (
               cell.toString().includes('created_at') || 
@@ -130,6 +150,7 @@ export function ImportPage() {
           const headers = rows[headerRowIndex].map(h => h ? h.toString().trim() : '')
           const dataRows = rows.slice(headerRowIndex + 1)
 
+          // CONSTRUÇÃO E HIGIENIZAÇÃO DOS OBJETOS
           const ticketsToInsert = dataRows
             .map(row => {
               const item = {}
@@ -164,6 +185,7 @@ export function ImportPage() {
                 categoria: normalizeCategoria(item.categoria),
                 tipo_ticket: normalizeTipoChamado(rawTipo) === 'Bug' ? 'BUG' : 'FEATURE',
                 
+                // Conversor corrigido acionado aqui
                 created_at: parseCSVDate(item.created_at),
                 created_by: user.id
               }
@@ -173,8 +195,17 @@ export function ImportPage() {
             throw new Error('Nenhum registro válido em conformidade foi extraído do arquivo.')
           }
 
-          await ticketService.importTickets(ticketsToInsert)
-          setResult({ success: ticketsToInsert.length })
+          // ARQUITETURA DE ALTA PERFORMANCE: Inserção em Lotes (Chunking)
+          const BATCH_SIZE = 50 
+          let insertedCount = 0
+
+          for (let i = 0; i < ticketsToInsert.length; i += BATCH_SIZE) {
+            const batch = ticketsToInsert.slice(i, i + BATCH_SIZE)
+            await ticketService.importTickets(batch)
+            insertedCount += batch.length
+          }
+
+          setResult({ success: insertedCount })
         } catch (err) {
           console.error('Erro na esteira de importação:', err)
           setResult({ success: 0, error: err.message || 'Falha técnica ao mapear registros.' })
@@ -196,7 +227,7 @@ export function ImportPage() {
       <div className="p-8 max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Carga Histórica de Chamados</h1>
-          <p className="text-sm text-gray-500">Esteira inteligente com tratamento cronológico e auto-ajuste de Enums.</p>
+          <p className="text-sm text-gray-500">Esteira inteligente com tratamento cronológico e inserção em lotes.</p>
         </div>
         
         <div className="bg-white p-8 rounded-2xl border border-gray-200 border-dashed text-center shadow-xs">
@@ -208,7 +239,7 @@ export function ImportPage() {
             className="block w-full text-sm text-gray-500 mx-auto file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-900 file:text-white hover:file:bg-gray-800 cursor-pointer"
           />
           <p className="mt-4 text-xs text-gray-400">
-            Arraste ou selecione o arquivo <code>.csv</code> com cabeçalhos sanitizados.
+            Arraste ou selecione o arquivo <code>.csv</code> (suporta descrições com múltiplas linhas).
           </p>
         </div>
 
@@ -218,7 +249,7 @@ export function ImportPage() {
           className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-blue-700 transition shadow-sm disabled:opacity-50 cursor-pointer"
         >
           <ArrowUpTrayIcon className="w-5 h-5" />
-          {loading ? 'Processando Lote de Registros...' : 'Iniciar Carga de Histórico'}
+          {loading ? 'Processando e Enviando Lotes...' : 'Iniciar Carga de Histórico'}
         </button>
 
         {result?.success > 0 && (
@@ -226,7 +257,7 @@ export function ImportPage() {
             <CheckCircleIcon className="w-5 h-5 text-green-600 shrink-0" />
             <div>
               <span className="font-bold">Importação Concluída com Sucesso!</span>
-              <p className="text-xs text-green-600 mt-0.5">Foram consolidados <span className="font-bold">{result.success}</span> chamados com suas respectivas linhas do tempo e meses preservados.</p>
+              <p className="text-xs text-green-600 mt-0.5">Foram consolidados <span className="font-bold">{result.success}</span> chamados no banco de dados.</p>
             </div>
           </div>
         )}
