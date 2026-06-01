@@ -60,9 +60,15 @@ export function TicketListPage() {
     }
   }
 
+  // 1. UTILITÁRIO: Copiar Texto Padrão de ABERTURA para WhatsApp (Link de Rastreio)
   const copyTicketOpenToWhatsApp = (ticket) => {
-    const text = `Olá! 🚀\n\nO seu chamado *#${ticket.ticket_number || 'S/N'}* foi registrado com sucesso em nosso sistema.\n\n📌 *Resumo:*\n*Cliente:* ${ticket.customer_name}\n*Título:* ${ticket.title}\n\nNossa equipe já está analisando a sua solicitação. Qualquer dúvida, é só nos chamar por aqui!`;
+    // Cria a URL apontando para a tela de rastreamento com o ID do chamado
+    const linkRastreio = `https://support-saas-five.vercel.app/rastrear/${ticket.id}`;
+    
+    const text = `Olá! 🚀\n\nO seu chamado *#${ticket.ticket_number || 'S/N'}* foi registrado com sucesso em nosso sistema.\n\n📌 *Resumo:*\n*Cliente:* ${ticket.customer_name}\n*Título:* ${ticket.title}\n\nNossa equipe já está analisando a sua solicitação.\n\n👉 *ACOMPANHE O STATUS DO SEU CHAMADO AQUI:*\n${linkRastreio}\n\nQualquer dúvida, é só nos chamar por aqui!`;
+    
     navigator.clipboard.writeText(text);
+    
     setCopiedTicketId(ticket.id);
     setTimeout(() => setCopiedTicketId(null), 2000);
   }

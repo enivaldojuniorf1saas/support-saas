@@ -16,9 +16,10 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* 🟢 ROTAS PÚBLICAS (Sem verificação de Login) */}
+          {/* 🟢 ROTAS PÚBLICAS (Sem verificação de Login para o Cliente Final) */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/avaliar/:id" element={<NpsPage />} />
+          <Route path="/rastrear/:id" element={<TrackingPage />} />
           
           {/* REDIRECIONAMENTO PADRÃO */}
           <Route path="/" element={<Navigate to="/chamados" replace />} />
@@ -32,9 +33,6 @@ export default function App() {
           } />
           <Route path="/chamados/:id" element={
             <ProtectedLayout><TicketDetailPage /></ProtectedLayout>
-          } />
-          <Route path="/rastrear" element={
-            <ProtectedLayout><TrackingPage /></ProtectedLayout>
           } />
 
           {/* 🔴 ROTAS PROTEGIDAS E RESTRITAS (Acesso apenas para Gestores) */}
