@@ -67,9 +67,19 @@ export function TicketListPage() {
     setTimeout(() => setCopiedTicketId(null), 2000);
   }
 
+  // 2. UTILITÁRIO: Copiar Texto Padrão de PEDIDO DE NPS para WhatsApp
+  // 2. UTILITÁRIO: Copiar Texto Padrão de PEDIDO DE NPS para WhatsApp (Link do Backoffice na Vercel)
   const copyNpsRequestToWhatsApp = (ticket) => {
-    const text = `Olá! ✅\n\nPassando para avisar que o seu chamado *#${ticket.ticket_number || 'S/N'}* ("${ticket.title}") foi concluído!\n\nPara continuarmos melhorando nosso atendimento, gostaríamos muito de saber como foi a sua experiência.\n\nVocê poderia nos avaliar rapidamente através do link abaixo?\n👉 *[ INSERIR O LINK DA PESQUISA AQUI ]*\n\nAgradecemos a parceria!`;
+    // URL oficial de produção na Vercel integrada ao ID dinâmico do ticket
+    const linkNps = `https://support-saas-five.vercel.app/avaliar/${ticket.id}`;
+    
+    // Monta o texto limpo e profissional com destaque em negrito para o link
+    const text = `Olá! ✅\n\nPassando para avisar que o seu chamado *#${ticket.ticket_number || 'S/N'}* ("${ticket.title}") foi concluído!\n\nPara continuarmos melhorando nosso atendimento, gostaríamos muito de saber como foi a sua experiência. É bem rapidinho!\n\n👉 *CLIQUE NO LINK ABAIXO PARA AVALIAR O CHAMADO:*\n${linkNps}\n\nAgradecemos a parceria!`;
+    
+    // Copia o resultado final para a área de transferência
     navigator.clipboard.writeText(text);
+    
+    // Alerta visual de sucesso no botão (2 segundos de feedback)
     setCopiedNpsId(ticket.id);
     setTimeout(() => setCopiedNpsId(null), 2000);
   }

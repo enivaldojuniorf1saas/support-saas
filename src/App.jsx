@@ -9,20 +9,21 @@ import { DashboardPage }      from './pages/DashboardPage'
 import { ImportPage }         from './pages/ImportPage'
 import { UsersPage }          from './pages/UsersPage'
 import { NpsPage }            from './pages/NpsPage'
-import { TrackingPage } from './pages/TrackingPage'
+import { TrackingPage }       from './pages/TrackingPage'
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* 🟢 ROTAS PÚBLICAS (Sem verificação de Login) */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<Navigate to="/chamados" replace />} />
-          
-          {/* 2. ROTA PÚBLICA DE AVALIAÇÃO (Fora do ProtectedLayout) */}
           <Route path="/avaliar/:id" element={<NpsPage />} />
           
-          {/* ROTAS PROTEGIDAS */}
+          {/* REDIRECIONAMENTO PADRÃO */}
+          <Route path="/" element={<Navigate to="/chamados" replace />} />
+          
+          {/* 🔴 ROTAS PROTEGIDAS (Acesso apenas para equipe Logada) */}
           <Route path="/chamados" element={
             <ProtectedLayout><TicketListPage /></ProtectedLayout>
           } />
@@ -32,6 +33,11 @@ export default function App() {
           <Route path="/chamados/:id" element={
             <ProtectedLayout><TicketDetailPage /></ProtectedLayout>
           } />
+          <Route path="/rastrear" element={
+            <ProtectedLayout><TrackingPage /></ProtectedLayout>
+          } />
+
+          {/* 🔴 ROTAS PROTEGIDAS E RESTRITAS (Acesso apenas para Gestores) */}
           <Route path="/dashboard" element={
             <ProtectedLayout requireGestor><DashboardPage /></ProtectedLayout>
           } />
@@ -41,8 +47,7 @@ export default function App() {
           <Route path="/equipa" element={
             <ProtectedLayout requireGestor><UsersPage /></ProtectedLayout>
           } />
-          <Route path="/avaliar/:id" element={<NpsPage />} />
-<         Route path="/rastrear" element={<TrackingPage />} />
+          
         </Routes>
       </BrowserRouter>
     </AuthProvider>
