@@ -45,6 +45,9 @@ export default function App() {
           <Route path="/equipa" element={
             <ProtectedLayout requireGestor><UsersPage /></ProtectedLayout>
           } />
+          <Route path="/chamados/editar/:id" element={
+            <ProtectedLayout><NewTicketPage /></ProtectedLayout>
+          } />
           
         </Routes>
       </BrowserRouter>

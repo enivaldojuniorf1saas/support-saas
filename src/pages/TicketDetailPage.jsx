@@ -11,7 +11,8 @@ import {
   ClockIcon, 
   TagIcon, 
   BriefcaseIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  PencilSquareIcon // <-- Ícone do botão de edição adicionado aqui
 } from '@heroicons/react/24/outline'
 
 const NEXT_STATUS = {
@@ -218,6 +219,8 @@ export function TicketDetailPage() {
 
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6 sm:p-8">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+                        
+                        {/* LADO ESQUERDO: Identificação do Chamado */}
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                                 <span className="bg-gray-100 text-gray-500 font-bold px-2 py-1 rounded text-sm">#{ticket.ticket_number || 'S/N'}</span>
@@ -230,6 +233,18 @@ export function TicketDetailPage() {
                                 <BriefcaseIcon className="w-4 h-4" /> Cliente / Licença: <span className="text-gray-900">{ticket.customer_name}</span>
                             </p>
                         </div>
+
+                        {/* 🔥 LADO DIREITO: Botão de Edição Adicionado Aqui */}
+                        <div className="flex items-center shrink-0 mt-2 sm:mt-0">
+                            <Link 
+                                to={`/chamados/editar/${ticket.id}`} 
+                                className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-blue-600 hover:border-blue-300 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
+                            >
+                                <PencilSquareIcon className="w-4 h-4" />
+                                Editar Dados
+                            </Link>
+                        </div>
+
                     </div>
 
                     <div className="bg-gray-50/80 rounded-xl p-5 mb-6 border border-gray-100">
@@ -247,7 +262,7 @@ export function TicketDetailPage() {
                         <div>
                             <span className="flex items-center gap-1.5 text-gray-400 text-xs font-semibold mb-1"><ClockIcon className="w-4 h-4"/> Abertura</span>
                             <span className="text-sm text-gray-900 font-medium">
-                              {ticket.created_at ? format(new Date(ticket.created_at), "dd/MM/yyyy HH:mm") : '---'}
+                            {ticket.created_at ? format(new Date(ticket.created_at), "dd/MM/yyyy HH:mm") : '---'}
                             </span>
                         </div>
                         <div>

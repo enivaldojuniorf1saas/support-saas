@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useParams } from 'react-router-dom'
 import { ticketService } from '../services/ticketService'
 import { useAuthContext } from '../context/AuthContext'
 import { Bug, Sparkles, Wrench, Headphones } from 'lucide-react'
@@ -11,8 +11,6 @@ const schema = z.object({
     title: z.string().min(5, 'Título deve ter pelo menos 5 caracteres'),
     description: z.string().optional(),
     customer_name: z.string().min(2, 'Nome do cliente é obrigatório'),
-    customer_email: z.string().optional(),
-    customer_phone: z.string().optional(),
     priority: z.string().min(1, 'Obrigatório'),
     solicitante: z.string().min(1, 'Obrigatório'),
     workflow: z.string().min(1, 'Obrigatório'),
@@ -25,46 +23,93 @@ const schema = z.object({
 })
 
 export function NewTicketPage() {
+    const { id } = useParams()
+    const isEditing = !!id
+
     const { user } = useAuthContext()
     const navigate = useNavigate()
     const [submitError, setSubmitError] = useState('')
+    const [isLoadingData, setIsLoadingData] = useState(isEditing)
 
-    const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
+    const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm({
         resolver: zodResolver(schema),
-        defaultValues: { 
-            priority: 'SELECIONAR', 
-            tipo_ticket: 'SELECIONAR', 
-            estado: 'SELECIONAR', 
-            workflow: 'SELECIONAR',
-            tipo_chamado: 'SELECIONAR',
-            aplicacao: 'SELECIONAR',
-            tipo_perfil: 'SELECIONAR',
-            categoria: 'SELECIONAR',
-            solicitante: 'SELECIONAR',
-            customer_name: 'SELECIONAR' // Atualizado default
+        defaultValues: {
+            priority: 'MEDIA',
+            tipo_ticket: 'FEATURE',
+            estado: 'A iniciar',
+            workflow: 'Engenharia',
+            tipo_chamado: 'Bug',
+            aplicacao: 'Web',
+            tipo_perfil: 'Cliente',
+            categoria: 'Manutenção',
+            solicitante: '',
+            customer_name: ''
         },
     })
 
     const tipoAtual = watch('tipo_ticket')
 
+    useEffect(() => {
+        if (isEditing) {
+            ticketService.getById(id)
+                .then(ticket => {
+                    // CORREÇÃO 1: customer_name normalizado para UPPERCASE para bater com os <option>
+                    const dbCustomer = ticket.customer_name
+                        ? ticket.customer_name.toUpperCase()
+                        : ''
+
+                    // CORREÇÃO 1: solicitante usado direto do banco sem busca em lista local
+                    // O <select> vai encontrar o <option> correto pela comparação exata de string
+                    const dbSolicitante = ticket.solicitante || ''
+
+                    reset({
+                        title: ticket.title || '',
+                        description: ticket.description || '',
+                        customer_name: dbCustomer,
+                        priority: ticket.priority || 'MEDIA',
+                        solicitante: dbSolicitante,
+                        workflow: ticket.workflow || 'Engenharia',
+                        estado: ticket.estado || 'A iniciar',
+                        tipo_chamado: ticket.tipo_chamado || 'Bug',
+                        aplicacao: ticket.aplicacao || 'Web',
+                        tipo_perfil: ticket.tipo_perfil || 'Cliente',
+                        categoria: ticket.categoria || 'Manutenção',
+                        tipo_ticket: ticket.tipo_ticket || 'FEATURE'
+                    })
+                })
+                .catch(err => setSubmitError('Erro ao carregar dados do chamado para edição.'))
+                .finally(() => setIsLoadingData(false))
+        }
+    }, [id, reset, isEditing])
+
     const onSubmit = async (values) => {
         setSubmitError('')
         try {
-            if (!user?.id) {
-                throw new Error("Sessão expirada ou usuário não autenticado.")
-            }
-            // Força a garantia de maiúsculo na hora de enviar, caso o onBlur falhe em algum navegador bizarro
+            if (!user?.id) throw new Error("Sessão expirada ou usuário não autenticado.")
+
             const finalValues = {
                 ...values,
                 customer_name: values.customer_name.toUpperCase(),
-                created_by: user.id
             }
-            await ticketService.create(finalValues)
+
+            if (!isEditing) finalValues.created_by = user.id
+
+            // CORREÇÃO 2: ticketService.update() agora existe no ticketService.js
+            if (isEditing) {
+                await ticketService.update(id, finalValues)
+            } else {
+                await ticketService.create(finalValues)
+            }
+
             navigate('/chamados')
         } catch (err) {
             console.error("ERRO NO SUPABASE:", err)
             setSubmitError(err.message || 'Falha ao salvar no banco. Verifique as colunas da tabela tickets.')
         }
+    }
+
+    if (isLoadingData) {
+        return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">Carregando dados do chamado...</div>
     }
 
     return (
@@ -74,23 +119,13 @@ export function NewTicketPage() {
             </div>
 
             <div className="max-w-4xl mx-auto px-4 py-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-6">Novo Chamado</h1>
+                <h1 className="text-2xl font-bold text-gray-900 mb-6">
+                    {isEditing ? 'Editar Chamado' : 'Novo Chamado'}
+                </h1>
 
                 {submitError && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                        <strong>Erro de Banco de Dados:</strong> {submitError}
-                        <br/>(Dica: se for um erro de coluna não encontrada, crie-a no painel do Supabase).
-                    </div>
-                )}
-
-                {Object.keys(errors).length > 0 && (
-                    <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg text-orange-700 text-sm">
-                        <strong>O formulário foi bloqueado devido a:</strong>
-                        <ul className="list-disc ml-5 mt-1">
-                            {Object.entries(errors).map(([campo, erro]) => (
-                                <li key={campo}><b>{campo}</b>: {erro.message}</li>
-                            ))}
-                        </ul>
+                        <strong>Erro:</strong> {submitError}
                     </div>
                 )}
 
@@ -113,7 +148,6 @@ export function NewTicketPage() {
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${tipoAtual === 'CHORE' ? 'bg-gray-100 border-gray-500 text-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                                 <Wrench className="w-4 h-4" /> <span>Chore</span>
                             </button>
-                            {/* ADIÇÃO: Suporte técnico na Classificação do Ticket */}
                             <button type="button" onClick={() => setValue('tipo_ticket', 'SUPORTE')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${tipoAtual === 'SUPORTE' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                                 <Headphones className="w-4 h-4" /> <span>Suporte técnico</span>
@@ -130,19 +164,19 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Solicitante</label>
                             <select {...register('solicitante')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option value="SELECIONAR" disabled>- Selecione -</option>
-                                <option value="7serv">7 Serv</option>
-                                <option value="7Facilite">7 Facilite</option>
-                                <option value="AminBeneficios">Amin Beneficios</option>
-                                <option value="Axiscard">Axis Card</option>
-                                <option value="BfluxGestao">B-Flux Gestão</option>
-                                <option value="Conexoscard">Conexos Card</option>
-                                <option value="FrotappSolucoes">Frotapp Soluções</option>
-                                <option value="IntechBeneficios">Intech Beneficios</option>
-                                <option value="Nexoscard">Nexos Card</option>
-                                <option value="Paybeneficios">Pay Beneficios</option>
-                                <option value="Syncmax">Syncmax Beneficios</option>
-                                <option value="Unybeneficios">Uny Beneficios</option>
+                                <option value="" disabled>-- Selecione --</option>
+                                <option value="7 Serv">7 Serv</option>
+                                <option value="7 Facilite">7 Facilite</option>
+                                <option value="Amin Beneficios">Amin Beneficios</option>
+                                <option value="Axis Card">Axis Card</option>
+                                <option value="B-Flux Gestão">B-Flux Gestão</option>
+                                <option value="Conexos Card">Conexos Card</option>
+                                <option value="Frotapp Soluções">Frotapp Soluções</option>
+                                <option value="Intech Beneficios">Intech Beneficios</option>
+                                <option value="Nexos Card">Nexos Card</option>
+                                <option value="Pay Beneficios">Pay Beneficios</option>
+                                <option value="Syncmax Beneficios">Syncmax Beneficios</option>
+                                <option value="Uny Beneficios">Uny Beneficios</option>
                                 <option value="Equipe Interna">Equipe Interna</option>
                             </select>
                         </div>
@@ -150,10 +184,8 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Workflow</label>
                             <select {...register('workflow')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option value="SELECIONAR" disabled>- Selecione -</option>
                                 <option value="Engenharia">Engenharia</option>
                                 <option value="Portifolio">Portifólio</option>
-                                {/* ADIÇÃO: Equipe Interna no Workflow */}
                                 <option value="Equipe Interna">Equipe Interna</option>
                             </select>
                         </div>
@@ -161,34 +193,24 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                             <select {...register('estado')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option value="SELECIONAR" disabled>- Selecione -</option>
-                                <option value="Apriorizar">A priorizar</option>
-                                <option value="Apriorizar">Priorizado</option>
-                                <option value="Ainiciar">A Iniciar</option>
-                                <option value="EmDesenvolvimento">Em Desenvolvimento</option>
-                                <option value="Revisao">Em Revisão</option>
-                                <option value="Em Validação">Em Validação</option>
-                                <option value="Pronto">Pronto</option>
-                                
+                                {['A iniciar', 'A priorizar', 'Em Desenvolvimento', 'Em revisão', 'Em validação', 'Priorizado', 'Pronto'].map(est => (
+                                    <option key={est} value={est}>{est}</option>
+                                ))}
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Chamado</label>
                             <select {...register('tipo_chamado')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option value="SELECIONAR" disabled>- Selecione -</option>
-                                <option value="Bug">Bug</option>
-                                <option value="Suportecnico">Suporte Técnico</option>
-                                <option value="Aprimoramento">Aprimoramento</option>
-                                <option value="Erro Operacional">Erro Operacional</option>
-                                <option value="SolicitacaoFuncionalidade">Solicitação de Funcionalidade</option>
+                                {['Bug', 'Suporte técnico', 'Suporte Técnico', 'Aprimoramento', 'Erro operacional', 'Solicitação de Funcionalidade'].map(tipo => (
+                                    <option key={tipo} value={tipo}>{tipo}</option>
+                                ))}
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Aplicação</label>
                             <select {...register('aplicacao')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option value="SELECIONAR" disabled>- Selecione -</option>
                                 <option value="Aplicativo Mobile">Aplicativo Mobile</option>
                                 <option value="Web">Web</option>
                             </select>
@@ -197,36 +219,24 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Perfil</label>
                             <select {...register('tipo_perfil')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                {/* ADIÇÃO: Suporte Interno no Tipo de Perfil */}
-                                 <option value="SELECIONAR" disabled>- Selecione -</option>
-                                <option value="Licenciado">Licenciado</option>
-                                <option value="Cliente">Cliente</option>
-                                <option value="Credenciado">Credenciado</option>
-                                <option value="Admorganization">Gestor da Organização</option>
-                                <option value="UserOrganization">Usuário da Organização</option>
-                                <option value="Beneficiario">Beneficiário</option>
-                                <option value="SuporteTecnico">Suporte Técnico</option>
+                                {['Licenciado', 'Cliente', 'Credenciado', 'Adm organização', 'Operador da organização', 'Beneficiário', 'Suporte Interno'].map(perfil => (
+                                    <option key={perfil} value={perfil}>{perfil}</option>
+                                ))}
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                             <select {...register('categoria')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                 <option value="SELECIONAR" disabled>- Selecione -</option>
-                                <option value="Abastecimento">Abastecimento</option>
-                                <option value="Manutencao">Manutenção</option>
-                                <option value="Telemetry">Telemetria</option>
-                                <option value="Patrimonio">Patrimônio</option>
-                                <option value="Beneficios">Beneficios</option>
-                                <option value="Educacao">Educação</option>
-                                <option value="Saude">Saúde</option>
+                                {['Abastecimento', 'Manutenção', 'Telemetria', 'Beneficios', 'Patrimonio', 'Educação', 'Saúde'].map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
                             <select {...register('priority')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option value="SELECIONAR" disabled>- Selecione -</option>
                                 <option value="BAIXA">Baixa</option>
                                 <option value="MEDIA">Média</option>
                                 <option value="ALTA">Alta</option>
@@ -239,8 +249,7 @@ export function NewTicketPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                         <textarea {...register('description')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-blue-500" />
                     </div>
-    
-                    {/* Dados do Cliente */}
+
                     <div className="border-t border-gray-100 pt-6">
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Dados do Cliente</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -252,7 +261,7 @@ export function NewTicketPage() {
                                     {...register('customer_name')}
                                     className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 uppercase bg-white ${errors.customer_name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 >
-                                    <option value="SELECIONAR" disabled>- SELECIONE O CLIENTE -</option>
+                                    <option value="" disabled>-- SELECIONE O CLIENTE --</option>
                                     <option value="7 SERV">7 SERV</option>
                                     <option value="7 FACILITE">7 FACILITE</option>
                                     <option value="AMIN BENEFICIOS">AMIN BENEFICIOS</option>
@@ -265,14 +274,12 @@ export function NewTicketPage() {
                                     <option value="PAY BENEFICIOS">PAY BENEFICIOS</option>
                                     <option value="SYNCMAX BENEFICIOS">SYNCMAX BENEFICIOS</option>
                                     <option value="UNY BENEFICIOS">UNY BENEFICIOS</option>
-                                    <option value="F1SAAS">SUPORTE TÉCNICO</option>
                                 </select>
                                 {errors.customer_name && <p className="text-red-500 text-xs mt-1">{errors.customer_name.message}</p>}
                             </div>
                         </div>
                     </div>
 
-                    {/* Botão de Submit */}
                     <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-6">
                         <Link
                             to="/chamados"
@@ -285,7 +292,7 @@ export function NewTicketPage() {
                             disabled={isSubmitting}
                             className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
                         >
-                            {isSubmitting ? 'Salvando...' : 'Salvar Chamado'}
+                            {isSubmitting ? 'Salvando...' : (isEditing ? 'Atualizar Chamado' : 'Salvar Chamado')}
                         </button>
                     </div>
 
@@ -294,3 +301,5 @@ export function NewTicketPage() {
         </div>
     )
 }
+
+export default NewTicketPage

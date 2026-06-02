@@ -15,6 +15,19 @@ export const ticketService = {
     return data
   },
 
+  // 🔄 NOVO: Atualiza os dados de um chamado existente
+  async update(id, payload) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
   // 🔄 ATUALIZADO: Motor de busca em formato "Funil" (Filtra enquanto digita)
   async list({ status, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
     let query = supabase
