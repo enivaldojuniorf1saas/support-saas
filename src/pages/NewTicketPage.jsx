@@ -34,16 +34,16 @@ export function NewTicketPage() {
     const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
-            priority: 'MEDIA',
-            tipo_ticket: 'FEATURE',
-            estado: 'A iniciar',
-            workflow: 'Engenharia',
-            tipo_chamado: 'Bug',
-            aplicacao: 'Web',
-            tipo_perfil: 'Cliente',
-            categoria: 'Manutenção',
-            solicitante: '',
-            customer_name: ''
+            priority: 'Selecionar',
+            tipo_ticket: 'Selecionar',
+            estado: 'Selecionar',
+            workflow: 'Selecionar',
+            tipo_chamado: 'Selecionar',
+            aplicacao: 'Selecionar',
+            tipo_perfil: 'Selecionar',
+            categoria: 'Selecionar',
+            solicitante: 'Selecionar',
+            customer_name: 'Selecionar'
         },
     })
 
@@ -164,7 +164,7 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Solicitante</label>
                             <select {...register('solicitante')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option value="" disabled>-- Selecione --</option>
+                                <option value="Selecionar" disabled>- Selecione -</option>
                                 <option value="7 Serv">7 Serv</option>
                                 <option value="7 Facilite">7 Facilite</option>
                                 <option value="Amin Beneficios">Amin Beneficios</option>
@@ -184,6 +184,7 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Workflow</label>
                             <select {...register('workflow')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                                <option value="Selecionar">- Selecione - </option>
                                 <option value="Engenharia">Engenharia</option>
                                 <option value="Portifolio">Portifólio</option>
                                 <option value="Equipe Interna">Equipe Interna</option>
@@ -193,24 +194,33 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                             <select {...register('estado')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                {['A iniciar', 'A priorizar', 'Em Desenvolvimento', 'Em revisão', 'Em validação', 'Priorizado', 'Pronto'].map(est => (
-                                    <option key={est} value={est}>{est}</option>
-                                ))}
+                                <option value="Selecionar">- Selecione - </option>
+                                <option value="Ainiciar">A Priorizar</option>
+                                <option value="Apriorizar">Priorizado</option>
+                                <option value="Ainiciar">A Iniciar</option>
+                                <option value="Em Desenvolvimento">Em Desenvolvimento</option>
+                                <option value="Em Revisão">Em Revisão</option>
+                                <option value="Em Validação">Em validação</option>
+                                <option value="Pronto">Pronto</option>
+
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Chamado</label>
                             <select {...register('tipo_chamado')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                {['Bug', 'Suporte técnico', 'Suporte Técnico', 'Aprimoramento', 'Erro operacional', 'Solicitação de Funcionalidade'].map(tipo => (
-                                    <option key={tipo} value={tipo}>{tipo}</option>
-                                ))}
+                                <option value="Selecionar">- Selecione - </option>
+                                <option value="Bug">Bug</option>
+                                <option value="Aprimoramento">Aprimoramento</option>
+                                <option value="ErroOperacional">Erro Operacional</option>
+                                <option value="Newfeacture">Nova Funcionalidade</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Aplicação</label>
                             <select {...register('aplicacao')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                                <option value="Selecionar">- Selecione - </option>
                                 <option value="Aplicativo Mobile">Aplicativo Mobile</option>
                                 <option value="Web">Web</option>
                             </select>
@@ -219,24 +229,33 @@ export function NewTicketPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Perfil</label>
                             <select {...register('tipo_perfil')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                {['Licenciado', 'Cliente', 'Credenciado', 'Adm organização', 'Operador da organização', 'Beneficiário', 'Suporte Interno'].map(perfil => (
-                                    <option key={perfil} value={perfil}>{perfil}</option>
-                                ))}
+                                <option value="Selecionar">- Selecione - </option>
+                                <option value="licenciado">Licenciado</option>
+                                <option value="client">Cliente</option>
+                                <option value="provider">Credenciado</option>
+                                <option value="admorganization">Administrador da Organização</option>
+                                <option value="operadororganization">Operador da Organização</option>
+                                <option value="beneficiary">Beneficiário</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                             <select {...register('categoria')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-                                {['Abastecimento', 'Manutenção', 'Telemetria', 'Beneficios', 'Patrimonio', 'Educação', 'Saúde'].map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
+                                <option value="Selecionar">- Selecione - </option>
+                                <option value="abastecimento">Abastecimento</option>
+                                <option value="manutencao">Manutenção</option>
+                                <option value="provider">Credenciado</option>
+                                <option value="patrimonio">Patrimô</option>
+                                <option value="telemetria">Telemetria</option>
+                                <option value="beneficios">Beneficios</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
                             <select {...register('priority')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                                <option value="Selecionar">- Selecione - </option>
                                 <option value="BAIXA">Baixa</option>
                                 <option value="MEDIA">Média</option>
                                 <option value="ALTA">Alta</option>
@@ -261,7 +280,8 @@ export function NewTicketPage() {
                                     {...register('customer_name')}
                                     className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 uppercase bg-white ${errors.customer_name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 >
-                                    <option value="" disabled>-- SELECIONE O CLIENTE --</option>
+                                    <option value="Selecionar" disabled>-- SELECIONE O CLIENTE --</option>
+                                    <option value="SUPORTE INTERNO">SUPORTE INTERNO</option>
                                     <option value="7 SERV">7 SERV</option>
                                     <option value="7 FACILITE">7 FACILITE</option>
                                     <option value="AMIN BENEFICIOS">AMIN BENEFICIOS</option>
