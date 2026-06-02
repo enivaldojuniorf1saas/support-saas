@@ -1,10 +1,30 @@
 import { supabase } from '../lib/supabase'
 
 export const ticketService = {
+  // 🔄 CRIAR NOVO CHAMADO COM AUTO-INCREMENTO INTELIGENTE
   async create(payload) {
     if (!payload?.title) throw new Error('Título é obrigatório')
     if (!payload?.customer_name) throw new Error('Nome do cliente é obrigatório')
 
+    // 1. Busca o ticket mais recente no banco para descobrir o último número gerado
+    const { data: lastTickets, error: fetchError } = await supabase
+      .from('tickets')
+      .select('ticket_number')
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    let nextNumber = 1 // Número inicial caso a tabela esteja totalmente vazia
+
+    if (lastTickets && lastTickets.length > 0 && lastTickets[0].ticket_number) {
+      // Extrai apenas os números do texto (ignora espaços/letras se existirem) e soma 1
+      const lastNum = parseInt(String(lastTickets[0].ticket_number).replace(/\D/g, '')) || 0
+      nextNumber = lastNum + 1
+    }
+
+    // 2. Adiciona o novo número sequencial ao payload
+    payload.ticket_number = nextNumber.toString()
+
+    // 3. Executa a inserção do novo chamado no Supabase
     const { data, error } = await supabase
       .from('tickets')
       .insert(payload)
