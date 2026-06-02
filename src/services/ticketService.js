@@ -178,5 +178,43 @@ export const ticketService = {
       .single()
     if (error) throw error
     return data
+  },
+  // 📊 NOVO: Motor de agregação de dados para o Dashboard
+  async getDashboardMetrics() {
+    // Busca todos os chamados abertos ou em andamento para ver o gargalo atual
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('workflow, categoria')
+      .not('status', 'eq', 'FECHADO') // Foca apenas no que está "na mesa"
+
+    if (error) throw error
+
+    // Agrupa e conta por Workflow
+    const workflowAgrupado = data.reduce((acc, ticket) => {
+      const wf = ticket.workflow || 'Não classificado'
+      acc[wf] = (acc[wf] || 0) + 1
+      return acc
+    }, {})
+
+    // Agrupa e conta por Categoria
+    const categoriaAgrupada = data.reduce((acc, ticket) => {
+      const cat = ticket.categoria || 'Sem categoria'
+      acc[cat] = (acc[cat] || 0) + 1
+      return acc
+    }, {})
+
+    // Formata para arrays ordenados do maior para o menor
+    const formatChartData = (obj) => {
+      return Object.entries(obj)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+    }
+
+    return {
+      totalAtivos: data.length,
+      porWorkflow: formatChartData(workflowAgrupado),
+      porCategoria: formatChartData(categoriaAgrupada)
+    }
   }
+  
 }

@@ -7,7 +7,8 @@ import {
 import { 
   ChartBarIcon, PresentationChartLineIcon, 
   ClockIcon, FaceSmileIcon, CheckBadgeIcon, BoltIcon,
-  UsersIcon, UserGroupIcon, CalendarDaysIcon
+  UsersIcon, UserGroupIcon, CalendarDaysIcon,
+  FunnelIcon, TagIcon, BriefcaseIcon // <-- Ícone BriefcaseIcon adicionado aqui
 } from '@heroicons/react/24/outline'
 import { subDays, isAfter, format, parse } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -88,26 +89,22 @@ export function DashboardPage() {
   }, [ticketsFiltrados])
 
   // ==========================================
-  // 🚀 NOVO GRÁFICO: EVOLUÇÃO TEMPORAL (MÊS/ANO)
+  // GRÁFICO: EVOLUÇÃO TEMPORAL (MÊS/ANO)
   // ==========================================
   const dadosTemporais = useMemo(() => {
     if (!Array.isArray(tickets)) return []
 
-    // Agrupa a contagem por Chave formatada "MM/yyyy"
     const contagemMesaAno = tickets.reduce((acc, t) => {
       if (!t.created_at) return acc
       try {
         const dataObj = new Date(t.created_at)
-        // Formata para obter ex: "05/2026"
         const chaveMesAno = format(dataObj, 'MM/yyyy') 
         acc[chaveMesAno] = (acc[chaveMesAno] || 0) + 1
       } catch (e) {
-        // Ignora datas inválidas
       }
       return acc
     }, {})
 
-    // Transforma o objeto de contagem em Array e ordena cronologicamente
     return Object.keys(contagemMesaAno)
       .map(chave => ({
         mesAno: chave,
@@ -118,7 +115,7 @@ export function DashboardPage() {
         const dataB = parse(b.mesAno, 'MM/yyyy', new Date())
         return dataA - dataB
       })
-  }, [tickets]) // Nota: O histórico temporal usa todos os tickets cadastrados para mostrar a evolução completa!
+  }, [tickets])
 
   // 3. Preparação de Dados para os demais Gráficos
   const dadosStatus = useMemo(() => {
@@ -150,16 +147,17 @@ export function DashboardPage() {
     return Object.keys(contagem).map(key => ({ name: key, total: contagem[key] }))
   }, [ticketsFiltrados])
 
-  const dadosSolicitantes = useMemo(() => {
+  const dadosTipoPerfil = useMemo(() => {
     const contagem = ticketsFiltrados.reduce((acc, t) => {
-      const sol = t?.solicitante || 'Não informado'
-      acc[sol] = (acc[sol] || 0) + 1
+      // Aqui nós apontamos para a coluna correta no banco: tipo_perfil
+      const perfil = t?.tipo_perfil || 'Não informado'
+      acc[perfil] = (acc[perfil] || 0) + 1
       return acc
     }, {})
     return Object.keys(contagem)
       .map(key => ({ name: key, total: contagem[key] }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 5)
+      .slice(0, 5) // Pega os 5 maiores
   }, [ticketsFiltrados])
 
   const dadosAgentes = useMemo(() => {
@@ -172,6 +170,43 @@ export function DashboardPage() {
       .map(key => ({ name: key, total: contagem[key] }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5)
+  }, [ticketsFiltrados])
+
+  const dadosWorkflow = useMemo(() => {
+    const contagem = ticketsFiltrados.reduce((acc, t) => {
+      const wf = t?.workflow || 'Não informado'
+      acc[wf] = (acc[wf] || 0) + 1
+      return acc
+    }, {})
+    return Object.keys(contagem)
+      .map(key => ({ name: key, total: contagem[key] }))
+      .sort((a, b) => b.total - a.total)
+  }, [ticketsFiltrados])
+
+  const dadosCategoria = useMemo(() => {
+    const contagem = ticketsFiltrados.reduce((acc, t) => {
+      const cat = t?.categoria || 'Sem categoria'
+      acc[cat] = (acc[cat] || 0) + 1
+      return acc
+    }, {})
+    return Object.keys(contagem)
+      .map(key => ({ name: key, total: contagem[key] }))
+      .sort((a, b) => b.total - a.total)
+  }, [ticketsFiltrados])
+
+  // ==========================================
+  // 🔥 NOVO: Preparação dos dados por CLIENTE
+  // ==========================================
+  const dadosClientes = useMemo(() => {
+    const contagem = ticketsFiltrados.reduce((acc, t) => {
+      const cliente = t?.customer_name || 'Não informado'
+      acc[cliente] = (acc[cliente] || 0) + 1
+      return acc
+    }, {})
+    return Object.keys(contagem)
+      .map(key => ({ name: key, total: contagem[key] }))
+      .sort((a, b) => b.total - a.total) // Ordena do cliente com mais chamados para o menor
+      .slice(0, 5) // Exibe os 5 principais clientes com maior volume
   }, [ticketsFiltrados])
 
   if (loading) return <div className="p-16 text-center text-gray-500 font-medium">Analisando dados do sistema...</div>
@@ -230,9 +265,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* 📊 SEÇÃO DO GRÁFICO TEMPORAL PRINCIPAL     */}
-      {/* ========================================== */}
+      {/* SEÇÃO DO GRÁFICO TEMPORAL PRINCIPAL */}
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col h-[400px]">
         <div className="flex items-center gap-2 mb-6">
           <CalendarDaysIcon className="w-5 h-5 text-blue-500" />
@@ -314,14 +347,62 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col h-[350px] lg:col-span-1 xl:col-span-2">
-            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-wide"><UserGroupIcon className="w-4 h-4 text-gray-400" /> Top 5 Solicitantes (Volume)</h3>
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col h-[350px]">
+            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-wide"><FunnelIcon className="w-4 h-4 text-gray-400" /> Distribuição por Workflow</h3>
             <div className="flex-1 w-full min-h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosSolicitantes} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                <BarChart data={dadosWorkflow} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={90} tick={{fontSize: 11}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} />
+                  <Bar dataKey="total" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col h-[350px]">
+            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-wide"><TagIcon className="w-4 h-4 text-gray-400" /> Volume por Categoria</h3>
+            <div className="flex-1 w-full min-h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosCategoria} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                  <XAxis dataKey="name" tick={{fontSize: 11}} />
+                  <YAxis tick={{fontSize: 11}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} />
+                  <Bar dataKey="total" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 🔥 NOVO GRÁFICO: Top 5 Clientes por Volume */}
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col h-[350px]">
+            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-wide">
+              <BriefcaseIcon className="w-4 h-4 text-gray-400" /> Top 5 Clientes (Volume)
+            </h3>
+            <div className="flex-1 w-full min-h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosClientes} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
                   <XAxis type="number" />
                   <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 11}} />
                   <Tooltip cursor={{fill: '#f8fafc'}} />
+                  <Bar dataKey="total" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col h-[350px] lg:col-span-1 xl:col-span-2">
+            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase tracking-wide">
+              <UserGroupIcon className="w-4 h-4 text-gray-400" /> Tipos de Perfil (Volume)
+            </h3>
+            <div className="flex-1 w-full min-h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosTipoPerfil} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 11}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} />
+                  {/* Mantive a sua cor rosa original do gráfico */}
                   <Bar dataKey="total" fill="#ec4899" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
