@@ -265,6 +265,7 @@ export function NewTicketPage() {
                                     <option value="PAY BENEFICIOS">PAY BENEFICIOS</option>
                                     <option value="SYNCMAX BENEFICIOS">SYNCMAX BENEFICIOS</option>
                                     <option value="UNY BENEFICIOS">UNY BENEFICIOS</option>
+                                    <option value="F1SAAS">SUPORTE TÉCNICO</option>
                                 </select>
                                 {errors.customer_name && <p className="text-red-500 text-xs mt-1">{errors.customer_name.message}</p>}
                             </div>
