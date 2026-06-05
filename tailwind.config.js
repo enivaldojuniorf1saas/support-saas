@@ -2,8 +2,10 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,jsx}",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // 🌟 ADICIONE ESTA LINHA AQUI:
+  darkMode: ['selector', '[data-theme="dark"]'], 
   theme: {
     extend: {},
   },
