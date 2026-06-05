@@ -213,7 +213,7 @@ export function NewTicketPage() {
                                 <option value="Bug">Bug</option>
                                 <option value="Aprimoramento">Aprimoramento</option>
                                 <option value="ErroOperacional">Erro Operacional</option>
-                                <option value="Newfeacture">Nova Funcionalidade</option>
+                                <option value="NovaFuncionalidade">Nova Funcionalidade</option>
                             </select>
                         </div>
 
@@ -231,11 +231,11 @@ export function NewTicketPage() {
                             <select {...register('tipo_perfil')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="Licenciado">Licenciado</option>
-                                <option value="cliente">Cliente</option>
-                                <option value="provider">Credenciado</option>
-                                <option value="admorganization">Administrador da Organização</option>
-                                <option value="operadororganization">Operador da Organização</option>
-                                <option value="beneficiary">Beneficiário</option>
+                                <option value="Cliente">Cliente</option>
+                                <option value="Credenciado">Credenciado</option>
+                                <option value="Admorganizacao">Administrador da Organização</option>
+                                <option value="Operadororganization">Operador da Organização</option>
+                                <option value="Beneficiario">Beneficiário</option>
                             </select>
                         </div>
 
@@ -245,7 +245,6 @@ export function NewTicketPage() {
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="abastecimento">Abastecimento</option>
                                 <option value="manutencao">Manutenção</option>
-                                <option value="provider">Credenciado</option>
                                 <option value="patrimonio">Patrimônio</option>
                                 <option value="telemetria">Telemetria</option>
                                 <option value="beneficios">Beneficios</option>
