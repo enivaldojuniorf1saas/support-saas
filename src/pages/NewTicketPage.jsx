@@ -230,8 +230,8 @@ export function NewTicketPage() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Perfil</label>
                             <select {...register('tipo_perfil')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="Selecionar">- Selecione - </option>
-                                <option value="licenciado">Licenciado</option>
-                                <option value="client">Cliente</option>
+                                <option value="Licenciado">Licenciado</option>
+                                <option value="cliente">Cliente</option>
                                 <option value="provider">Credenciado</option>
                                 <option value="admorganization">Administrador da Organização</option>
                                 <option value="operadororganization">Operador da Organização</option>
@@ -246,7 +246,7 @@ export function NewTicketPage() {
                                 <option value="abastecimento">Abastecimento</option>
                                 <option value="manutencao">Manutenção</option>
                                 <option value="provider">Credenciado</option>
-                                <option value="patrimonio">Patrimô</option>
+                                <option value="patrimonio">Patrimônio</option>
                                 <option value="telemetria">Telemetria</option>
                                 <option value="beneficios">Beneficios</option>
                             </select>
