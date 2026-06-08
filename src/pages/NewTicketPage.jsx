@@ -212,8 +212,9 @@ export function NewTicketPage() {
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="Bug">Bug</option>
                                 <option value="Aprimoramento">Aprimoramento</option>
-                                <option value="ErroOperacional">Erro Operacional</option>
-                                <option value="NovaFuncionalidade">Nova Funcionalidade</option>
+                                <option value="Erro Operacional">Erro Operacional</option>
+                                <option value="NovaF uncionalidade">Nova Funcionalidade</option>
+                                <option value="Dúvida">Dúvida</option>
                             </select>
                         </div>
 
@@ -243,11 +244,12 @@ export function NewTicketPage() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                             <select {...register('categoria')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
                                 <option value="Selecionar">- Selecione - </option>
-                                <option value="abastecimento">Abastecimento</option>
-                                <option value="manutencao">Manutenção</option>
-                                <option value="patrimonio">Patrimônio</option>
-                                <option value="telemetria">Telemetria</option>
-                                <option value="beneficios">Beneficios</option>
+                                <option value="Abastecimento">Abastecimento</option>
+                                <option value="Manutenção">Manutenção</option>
+                                <option value="Patrimônio">Patrimônio</option>
+                                <option value="Telemetria">Telemetria</option>
+                                <option value="Beneficios">Beneficios</option>
+                                <option value="Suporte Interno">Suporte <Interno></Interno></option>
                             </select>
                         </div>
 
