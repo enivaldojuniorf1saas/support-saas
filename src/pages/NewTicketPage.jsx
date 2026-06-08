@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { ticketService } from '../services/ticketService'
 import { useAuthContext } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext' // <-- Importando o Tema
 import { Bug, Sparkles, Wrench, Headphones } from 'lucide-react'
 
 const schema = z.object({
@@ -23,6 +24,9 @@ const schema = z.object({
 })
 
 export function NewTicketPage() {
+    const { theme } = useTheme()
+    const isDark = theme === 'dark'
+
     const { id } = useParams()
     const isEditing = !!id
 
@@ -53,13 +57,7 @@ export function NewTicketPage() {
         if (isEditing) {
             ticketService.getById(id)
                 .then(ticket => {
-                    // CORREÇÃO 1: customer_name normalizado para UPPERCASE para bater com os <option>
-                    const dbCustomer = ticket.customer_name
-                        ? ticket.customer_name.toUpperCase()
-                        : ''
-
-                    // CORREÇÃO 1: solicitante usado direto do banco sem busca em lista local
-                    // O <select> vai encontrar o <option> correto pela comparação exata de string
+                    const dbCustomer = ticket.customer_name ? ticket.customer_name.toUpperCase() : ''
                     const dbSolicitante = ticket.solicitante || ''
 
                     reset({
@@ -94,7 +92,6 @@ export function NewTicketPage() {
 
             if (!isEditing) finalValues.created_by = user.id
 
-            // CORREÇÃO 2: ticketService.update() agora existe no ticketService.js
             if (isEditing) {
                 await ticketService.update(id, finalValues)
             } else {
@@ -108,62 +105,92 @@ export function NewTicketPage() {
         }
     }
 
+    // Variáveis de estilo para facilitar a leitura com Dark Mode
+    const inputClass = `w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition-colors ${
+        isDark 
+            ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500' 
+            : 'bg-white border-gray-300 text-gray-900'
+    }`
+
     if (isLoadingData) {
-        return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">Carregando dados do chamado...</div>
+        return (
+            <div className={`min-h-screen flex items-center justify-center transition-colors ${isDark ? 'bg-[#0b0f19] text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                Carregando dados do chamado...
+            </div>
+        )
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <Link to="/chamados" className="text-sm text-blue-500 hover:underline">← Voltar para chamados</Link>
+        <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-[#0b0f19]' : 'bg-gray-50'}`}>
+            <div className={`border-b px-6 py-4 transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+                <Link to="/chamados" className="text-sm text-blue-500 hover:text-blue-400 hover:underline transition-colors">
+                    ← Voltar para chamados
+                </Link>
             </div>
 
             <div className="max-w-4xl mx-auto px-4 py-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-6">
+                <h1 className={`text-2xl font-bold mb-6 transition-colors ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {isEditing ? 'Editar Chamado' : 'Novo Chamado'}
                 </h1>
 
                 {submitError && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    <div className={`mb-6 p-4 border rounded-lg text-sm ${isDark ? 'bg-red-900/20 border-red-900/50 text-red-400' : 'bg-red-50 border-red-200 text-red-700'}`}>
                         <strong>Erro:</strong> {submitError}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit(onSubmit)} noValidate className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} noValidate className={`rounded-xl border p-6 space-y-6 transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
 
                     <input type="hidden" {...register('tipo_ticket')} />
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Classificação do Ticket</label>
+                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Classificação do Ticket</label>
                         <div className="flex flex-wrap gap-3">
+                            {/* Botões de Classificação - Adaptados para Dark Mode */}
                             <button type="button" onClick={() => setValue('tipo_ticket', 'FEATURE')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${tipoAtual === 'FEATURE' ? 'bg-purple-50 border-purple-600 text-purple-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                    tipoAtual === 'FEATURE' 
+                                        ? (isDark ? 'bg-purple-900/30 border-purple-500 text-purple-400' : 'bg-purple-50 border-purple-600 text-purple-700') 
+                                        : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
+                                }`}>
                                 <Sparkles className="w-4 h-4" /> <span>Feature</span>
                             </button>
                             <button type="button" onClick={() => setValue('tipo_ticket', 'BUG')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${tipoAtual === 'BUG' ? 'bg-red-50 border-red-600 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                    tipoAtual === 'BUG' 
+                                        ? (isDark ? 'bg-red-900/30 border-red-500 text-red-400' : 'bg-red-50 border-red-600 text-red-700') 
+                                        : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
+                                }`}>
                                 <Bug className="w-4 h-4" /> <span>Bug</span>
                             </button>
                             <button type="button" onClick={() => setValue('tipo_ticket', 'CHORE')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${tipoAtual === 'CHORE' ? 'bg-gray-100 border-gray-500 text-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                    tipoAtual === 'CHORE' 
+                                        ? (isDark ? 'bg-gray-700 border-gray-500 text-gray-200' : 'bg-gray-100 border-gray-500 text-gray-700') 
+                                        : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
+                                }`}>
                                 <Wrench className="w-4 h-4" /> <span>Chore</span>
                             </button>
                             <button type="button" onClick={() => setValue('tipo_ticket', 'SUPORTE')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${tipoAtual === 'SUPORTE' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                    tipoAtual === 'SUPORTE' 
+                                        ? (isDark ? 'bg-blue-900/30 border-blue-500 text-blue-400' : 'bg-blue-50 border-blue-600 text-blue-700') 
+                                        : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
+                                }`}>
                                 <Headphones className="w-4 h-4" /> <span>Suporte técnico</span>
                             </button>
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
-                        <input {...register('title')} className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 ${errors.title ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                        <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Título *</label>
+                        <input {...register('title')} className={`${inputClass} ${errors.title ? (isDark ? 'border-red-500 bg-red-900/20' : 'border-red-500 bg-red-50') : ''}`} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Solicitante</label>
-                            <select {...register('solicitante')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Solicitante</label>
+                            <select {...register('solicitante')} className={inputClass}>
                                 <option value="Selecionar" disabled>- Selecione -</option>
                                 <option value="7 Serv">7 Serv</option>
                                 <option value="7 Facilite">7 Facilite</option>
@@ -182,8 +209,8 @@ export function NewTicketPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Workflow</label>
-                            <select {...register('workflow')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Workflow</label>
+                            <select {...register('workflow')} className={inputClass}>
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="Engenharia">Engenharia</option>
                                 <option value="Portifolio">Portifólio</option>
@@ -192,35 +219,34 @@ export function NewTicketPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                            <select {...register('estado')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Estado</label>
+                            <select {...register('estado')} className={inputClass}>
                                 <option value="Selecionar">- Selecione - </option>
-                                <option value="Ainiciar">A Priorizar</option>
-                                <option value="Apriorizar">Priorizado</option>
-                                <option value="Ainiciar">A Iniciar</option>
+                                <option value="A Priorizar">A Priorizar</option>
+                                <option value="Priorizado">Priorizado</option>
+                                <option value="A Iniciar">A Iniciar</option>
                                 <option value="Em Desenvolvimento">Em Desenvolvimento</option>
                                 <option value="Em Revisão">Em Revisão</option>
-                                <option value="Em Validação">Em validação</option>
+                                <option value="Em Validação">Em Validação</option>
                                 <option value="Pronto">Pronto</option>
-
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Chamado</label>
-                            <select {...register('tipo_chamado')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Tipo de Chamado</label>
+                            <select {...register('tipo_chamado')} className={inputClass}>
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="Bug">Bug</option>
                                 <option value="Aprimoramento">Aprimoramento</option>
                                 <option value="Erro Operacional">Erro Operacional</option>
-                                <option value="NovaF uncionalidade">Nova Funcionalidade</option>
+                                <option value="Nova Funcionalidade">Nova Funcionalidade</option>
                                 <option value="Dúvida">Dúvida</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Aplicação</label>
-                            <select {...register('aplicacao')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Aplicação</label>
+                            <select {...register('aplicacao')} className={inputClass}>
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="Aplicativo Mobile">Aplicativo Mobile</option>
                                 <option value="Web">Web</option>
@@ -228,8 +254,8 @@ export function NewTicketPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Perfil</label>
-                            <select {...register('tipo_perfil')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Tipo de Perfil</label>
+                            <select {...register('tipo_perfil')} className={inputClass}>
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="Licenciado">Licenciado</option>
                                 <option value="Cliente">Cliente</option>
@@ -241,21 +267,21 @@ export function NewTicketPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                            <select {...register('categoria')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Categoria</label>
+                            <select {...register('categoria')} className={inputClass}>
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="Abastecimento">Abastecimento</option>
                                 <option value="Manutenção">Manutenção</option>
                                 <option value="Patrimônio">Patrimônio</option>
                                 <option value="Telemetria">Telemetria</option>
                                 <option value="Beneficios">Beneficios</option>
-                                <option value="Suporte Interno">Suporte <Interno></Interno></option>
+                                <option value="Suporte Interno">Suporte Interno</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
-                            <select {...register('priority')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Prioridade</label>
+                            <select {...register('priority')} className={inputClass}>
                                 <option value="Selecionar">- Selecione - </option>
                                 <option value="BAIXA">Baixa</option>
                                 <option value="MEDIA">Média</option>
@@ -266,20 +292,20 @@ export function NewTicketPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                        <textarea {...register('description')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-blue-500" />
+                        <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Descrição</label>
+                        <textarea {...register('description')} rows={3} className={`${inputClass} resize-none`} />
                     </div>
 
-                    <div className="border-t border-gray-100 pt-6">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Dados do Cliente</p>
+                    <div className={`border-t pt-6 transition-colors ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+                        <p className={`text-xs font-semibold uppercase tracking-wide mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Dados do Cliente</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-1">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Nome do Cliente <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     {...register('customer_name')}
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 uppercase bg-white ${errors.customer_name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                    className={`${inputClass} uppercase ${errors.customer_name ? (isDark ? 'border-red-500 bg-red-900/20' : 'border-red-500 bg-red-50') : ''}`}
                                 >
                                     <option value="Selecionar" disabled>-- SELECIONE O CLIENTE --</option>
                                     <option value="SUPORTE INTERNO">SUPORTE INTERNO</option>
@@ -301,10 +327,10 @@ export function NewTicketPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-6">
+                    <div className={`flex items-center justify-end gap-3 border-t pt-6 transition-colors ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
                         <Link
                             to="/chamados"
-                            className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                            className={`px-4 py-2 text-sm transition-colors ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             Cancelar
                         </Link>
