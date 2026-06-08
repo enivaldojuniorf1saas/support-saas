@@ -125,12 +125,30 @@ export function DashboardPage() {
   }, [ticketsFiltrados])
 
   // ==========================================
-  // CORRIGIDO: Agrupamento real por TIPO_CHAMADO
+  // 🛡️ HIGIENIZADO: TIPO_CHAMADO
   // ==========================================
   const dadosTipoChamado = useMemo(() => {
     const contagem = ticketsFiltrados.reduce((acc, t) => {
-      // Alinhado com a coluna real do seu banco: tipo_chamado
-      const tipo = t?.tipo_chamado || 'Não especificado'
+      let tipo = t?.tipo_chamado || 'Não especificado'
+      tipo = tipo.trim()
+
+      // Filtro de Padronização para o Tipo
+      const tipoLower = tipo.toLowerCase()
+      if (tipoLower === 'errooperacional' || tipoLower === 'erro_operacional' || tipoLower === 'erro operacional') {
+        tipo = 'Erro Operacional'
+      } else if (tipoLower === 'bug') {
+        tipo = 'Bug'
+      } else if (tipoLower === 'aprimoramento') {
+        tipo = 'Aprimoramento'
+      } else if (tipoLower === 'nova funcionalidade') {
+        tipo = 'Nova Funcionalidade'
+      } else if (tipoLower === 'dúvida' || tipoLower === 'duvida') {
+        tipo = 'Dúvida'
+      } else {
+        // Fallback genérico: Primeira maiúscula, resto minúscula
+        tipo = tipo.charAt(0).toUpperCase() + tipo.slice(1).toLowerCase()
+      }
+
       acc[tipo] = (acc[tipo] || 0) + 1
       return acc
     }, {})
@@ -192,9 +210,32 @@ export function DashboardPage() {
       .sort((a, b) => b.total - a.total)
   }, [ticketsFiltrados])
 
+  // ==========================================
+  // 🛡️ HIGIENIZADO: CATEGORIA
+  // ==========================================
   const dadosCategoria = useMemo(() => {
     const contagem = ticketsFiltrados.reduce((acc, t) => {
-      const cat = t?.categoria || 'Sem categoria'
+      let cat = t?.categoria || 'Sem categoria'
+      cat = cat.trim()
+
+      // Filtro de Padronização para Categoria
+      const catLower = cat.toLowerCase()
+      if (catLower === 'abastecimento') {
+        cat = 'Abastecimento'
+      } else if (catLower === 'manutenção' || catLower === 'manutencao') {
+        cat = 'Manutenção'
+      } else if (catLower === 'patrimônio' || catLower === 'patrimonio') {
+        cat = 'Patrimônio'
+      } else if (catLower === 'telemetria') {
+        cat = 'Telemetria'
+      } else if (catLower === 'beneficios' || catLower === 'benefícios') {
+        cat = 'Beneficios'
+      } else if (catLower === 'suporte interno') {
+        cat = 'Suporte Interno'
+      } else {
+        cat = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase()
+      }
+
       acc[cat] = (acc[cat] || 0) + 1
       return acc
     }, {})
@@ -332,7 +373,6 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* 📊 GRÁFICO ATUALIZADO: Tipo de Chamado (Baseado na coluna tipo_chamado) */}
           <div className={`p-6 rounded-xl border shadow-sm flex flex-col h-[350px] transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
             <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-wide ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
               <QuestionMarkCircleIcon className="w-4 h-4 text-gray-400" /> Distribuição por Tipo
