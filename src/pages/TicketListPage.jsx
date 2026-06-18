@@ -7,14 +7,19 @@ import {
   PlusIcon,
   DocumentDuplicateIcon,
   ChatBubbleLeftRightIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  FunnelIcon,
+  CalendarDaysIcon
 } from '@heroicons/react/24/outline'
 
 export function TicketListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   
+  // Resgata os filtros diretamente da URL
   const currentPage = Number(searchParams.get('page')) || 1
   const searchQuery = searchParams.get('search') || ''
+  const statusQuery = searchParams.get('status') || ''
+  const dateQuery = searchParams.get('date') || ''
 
   const [tickets, setTickets] = useState([])
   const [totalCount, setTotalCount] = useState(0)
@@ -32,7 +37,9 @@ export function TicketListPage() {
         const { data, count } = await ticketService.list({
           page: currentPage,
           pageSize,
-          search: searchQuery
+          search: searchQuery,
+          status: statusQuery, // Envia o status para o backend
+          date: dateQuery      // Envia a data para o backend
         })
         setTickets(data || [])
         setTotalCount(count || 0)
@@ -43,49 +50,38 @@ export function TicketListPage() {
       }
     }
     loadTickets()
-  }, [currentPage, searchQuery])
+  }, [currentPage, searchQuery, statusQuery, dateQuery])
 
   const handlePageChange = (newPage) => {
-    setSearchParams({ search: searchQuery, page: newPage.toString() })
+    const params = new URLSearchParams(searchParams)
+    params.set('page', newPage.toString())
+    setSearchParams(params)
   }
 
-  // Essa é a função que dispara o filtro a cada tecla digitada (em tempo real)
-  const handleSearchChange = (e) => {
-    const value = e.target.value
+  // Função genérica e inteligente para lidar com qualquer filtro
+  const handleFilterChange = (key, value) => {
+    const params = new URLSearchParams(searchParams)
     if (value) {
-      setSearchParams({ search: value, page: '1' })
+      params.set(key, value)
     } else {
-      searchParams.delete('search')
-      setSearchParams({ page: '1' })
+      params.delete(key)
     }
+    params.set('page', '1') // Sempre que filtrar, volta para a página 1
+    setSearchParams(params)
   }
 
-  // 1. UTILITÁRIO: Copiar Texto Padrão de ABERTURA para WhatsApp (Link de Rastreio)
   const copyTicketOpenToWhatsApp = (ticket) => {
-    // Cria a URL apontando para a tela de rastreamento com o ID do chamado
     const linkRastreio = `https://support-saas-five.vercel.app/rastrear/${ticket.id}`;
-    
     const text = `Olá! 🚀\n\nO seu chamado *#${ticket.ticket_number || 'S/N'}* foi registrado com sucesso em nosso sistema.\n\n📌 *Resumo:*\n*Cliente:* ${ticket.customer_name}\n*Título:* ${ticket.title}\n\nNossa equipe já está analisando a sua solicitação.\n\n👉 *ACOMPANHE O STATUS DO SEU CHAMADO AQUI:*\n${linkRastreio}\n\nQualquer dúvida, é só nos chamar por aqui!`;
-    
     navigator.clipboard.writeText(text);
-    
     setCopiedTicketId(ticket.id);
     setTimeout(() => setCopiedTicketId(null), 2000);
   }
 
-  // 2. UTILITÁRIO: Copiar Texto Padrão de PEDIDO DE NPS para WhatsApp
-  // 2. UTILITÁRIO: Copiar Texto Padrão de PEDIDO DE NPS para WhatsApp (Link do Backoffice na Vercel)
   const copyNpsRequestToWhatsApp = (ticket) => {
-    // URL oficial de produção na Vercel integrada ao ID dinâmico do ticket
     const linkNps = `https://support-saas-five.vercel.app/avaliar/${ticket.id}`;
-    
-    // Monta o texto limpo e profissional com destaque em negrito para o link
     const text = `Olá! ✅\n\nPassando para avisar que o seu chamado *#${ticket.ticket_number || 'S/N'}* ("${ticket.title}") foi concluído!\n\nPara continuarmos melhorando nosso atendimento, gostaríamos muito de saber como foi a sua experiência. É bem rapidinho!\n\n👉 *CLIQUE NO LINK ABAIXO PARA AVALIAR O CHAMADO:*\n${linkNps}\n\nAgradecemos a parceria!`;
-    
-    // Copia o resultado final para a área de transferência
     navigator.clipboard.writeText(text);
-    
-    // Alerta visual de sucesso no botão (2 segundos de feedback)
     setCopiedNpsId(ticket.id);
     setTimeout(() => setCopiedNpsId(null), 2000);
   }
@@ -126,19 +122,64 @@ export function TicketListPage() {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs mb-6 flex items-center">
-        <div className="relative w-full max-w-md">
+      {/* 🚀 NOVA BARRA DE FILTROS: Busca, Status e Data */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs mb-6 flex flex-col md:flex-row gap-4 items-center">
+        
+        {/* Filtro 1: Barra de Pesquisa */}
+        <div className="relative w-full md:flex-1">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
             <MagnifyingGlassIcon className="w-5 h-5" />
           </div>
           <input
             type="text"
             value={searchQuery}
-            onChange={handleSearchChange}
-            placeholder="Comece a digitar o nº do ticket para filtrar..."
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+            placeholder="Digite o nº do ticket ou título..."
             className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400 transition"
           />
         </div>
+
+        {/* Filtro 2: Status */}
+        <div className="relative w-full md:w-48 shrink-0">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <FunnelIcon className="w-4 h-4" />
+          </div>
+          <select
+            value={statusQuery}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 cursor-pointer transition appearance-none"
+          >
+            <option value="">Todos os Status</option>
+            <option value="ABERTO">Aberto</option>
+            <option value="EM_ATENDIMENTO">Em Atendimento</option>
+            <option value="AGUARDANDO_CLIENTE">Aguardando Cliente</option>
+            <option value="FECHADO">Fechado</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+        </div>
+
+        {/* Filtro 3: Período/Data (Calendário) */}
+        <div className="relative w-full md:w-48 shrink-0">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <CalendarDaysIcon className="w-4 h-4" />
+          </div>
+          <input
+            type="date"
+            value={dateQuery}
+            onChange={(e) => handleFilterChange('date', e.target.value)}
+            className="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 cursor-pointer transition"
+          />
+        </div>
+
+        {/* Botão de Limpar Filtros (Aparece apenas se houver filtros ativos) */}
+        {(searchQuery || statusQuery || dateQuery) && (
+          <button
+            onClick={() => setSearchParams({ page: '1' })}
+            className="w-full md:w-auto text-xs font-semibold text-gray-500 hover:text-red-500 transition px-2 py-2 shrink-0"
+          >
+            Limpar Filtros
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -211,7 +252,7 @@ export function TicketListPage() {
                     
                     <td className="p-4 align-middle text-center">
                       <span className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-full border ${
-                        ticket.status === 'FECHADO' 
+                        ticket.status === 'FECHADO' || ticket.status === 'CANCELADO'
                           ? 'bg-gray-100 text-gray-700 border-gray-200' 
                           : 'bg-blue-50 text-blue-700 border-blue-100'
                       }`}>

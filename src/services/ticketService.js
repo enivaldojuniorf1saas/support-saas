@@ -48,8 +48,8 @@ export const ticketService = {
     return data
   },
 
-  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" (Filtra enquanto digita)
-  async list({ status, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
+  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com Data
+  async list({ status, date, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
     let query = supabase
       .from('tickets')
       .select(`
@@ -62,23 +62,28 @@ export const ticketService = {
       `, { count: 'exact' })
       .order('created_at', { ascending: false }) 
 
-    // 🎯 A MÁGICA DA UX AQUI:
+    // 🎯 Filtro de Pesquisa em texto (Search)
     if (search) {
       const cleanSearch = search.replace('#', '').trim()
       const isNumeric = /^\d+$/.test(cleanSearch)
       
       if (isNumeric) {
-        // Se estiver digitando números, busca PARCIALMENTE no ticket.
-        // O "::text" converte o número no banco para texto instantaneamente, 
-        // permitindo que o .ilike funcione sem quebrar o sistema.
         query = query.ilike('ticket_number::text', `%${cleanSearch}%`)
       } else {
-        // Se tiver letras, busca por título ou cliente
         query = query.or(`title.ilike.%${cleanSearch}%,customer_name.ilike.%${cleanSearch}%`)
       }
     }
 
+    // 🎯 Novos Filtros: Status e Data
     if (status) query = query.eq('status', status)
+    
+    // Filtro para buscar registros do dia inteiro (Início 00:00:00 até Fim 23:59:59)
+    if (date) {
+      const startOfDay = new Date(`${date}T00:00:00`).toISOString()
+      const endOfDay = new Date(`${date}T23:59:59.999`).toISOString()
+      query = query.gte('created_at', startOfDay).lte('created_at', endOfDay)
+    }
+
     if (assignedTo) query = query.eq('assigned_to', assignedTo)
     if (createdBy) query = query.eq('created_by', createdBy)
 
