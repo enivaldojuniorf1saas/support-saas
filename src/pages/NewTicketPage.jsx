@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { ticketService } from '../services/ticketService'
 import { useAuthContext } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext' // <-- Importando o Tema
+import { useTheme } from '../context/ThemeContext'
 import { Bug, Sparkles, Wrench, Headphones } from 'lucide-react'
 
 const schema = z.object({
@@ -57,22 +57,23 @@ export function NewTicketPage() {
         if (isEditing) {
             ticketService.getById(id)
                 .then(ticket => {
-                    const dbCustomer = ticket.customer_name ? ticket.customer_name.toUpperCase() : ''
-                    const dbSolicitante = ticket.solicitante || ''
+                    // Blindagem adicionada aqui (ticket?.) para evitar quebra de tela caso a busca falhe
+                    const dbCustomer = ticket?.customer_name ? ticket.customer_name.toUpperCase() : ''
+                    const dbSolicitante = ticket?.solicitante || ''
 
                     reset({
-                        title: ticket.title || '',
-                        description: ticket.description || '',
+                        title: ticket?.title || '',
+                        description: ticket?.description || '',
                         customer_name: dbCustomer,
-                        priority: ticket.priority || 'MEDIA',
+                        priority: ticket?.priority || 'MEDIA',
                         solicitante: dbSolicitante,
-                        workflow: ticket.workflow || 'Engenharia',
-                        estado: ticket.estado || 'A iniciar',
-                        tipo_chamado: ticket.tipo_chamado || 'Bug',
-                        aplicacao: ticket.aplicacao || 'Web',
-                        tipo_perfil: ticket.tipo_perfil || 'Cliente',
-                        categoria: ticket.categoria || 'Manutenção',
-                        tipo_ticket: ticket.tipo_ticket || 'FEATURE'
+                        workflow: ticket?.workflow || 'Engenharia',
+                        estado: ticket?.estado || 'A iniciar',
+                        tipo_chamado: ticket?.tipo_chamado || 'Bug',
+                        aplicacao: ticket?.aplicacao || 'Web',
+                        tipo_perfil: ticket?.tipo_perfil || 'Cliente',
+                        categoria: ticket?.categoria || 'Manutenção',
+                        tipo_ticket: ticket?.tipo_ticket || 'FEATURE'
                     })
                 })
                 .catch(err => setSubmitError('Erro ao carregar dados do chamado para edição.'))
@@ -105,8 +106,23 @@ export function NewTicketPage() {
         }
     }
 
-    // Variáveis de estilo para facilitar a leitura com Dark Mode
-    const inputClass = `w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition-colors ${
+    // 🗑️ NOVA FUNÇÃO: Arquivar/Cancelar chamado
+    const handleArchive = async () => {
+        const confirmar = window.confirm('Tem certeza que deseja arquivar este chamado? Ele será cancelado e ocultado das métricas ativas.')
+        if (!confirmar) return
+
+        setSubmitError('')
+        try {
+            await ticketService.update(id, { status: 'CANCELADO' })
+            navigate('/chamados')
+        } catch (err) {
+            console.error("ERRO AO ARQUIVAR:", err)
+            setSubmitError('Falha ao arquivar o chamado.')
+        }
+    }
+
+    // Variáveis de estilo ATUALIZADAS (com cursor-pointer adicionado)
+    const inputClass = `w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition-colors cursor-pointer ${
         isDark 
             ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500' 
             : 'bg-white border-gray-300 text-gray-900'
@@ -146,9 +162,8 @@ export function NewTicketPage() {
                     <div>
                         <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Classificação do Ticket</label>
                         <div className="flex flex-wrap gap-3">
-                            {/* Botões de Classificação - Adaptados para Dark Mode */}
                             <button type="button" onClick={() => setValue('tipo_ticket', 'FEATURE')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
                                     tipoAtual === 'FEATURE' 
                                         ? (isDark ? 'bg-purple-900/30 border-purple-500 text-purple-400' : 'bg-purple-50 border-purple-600 text-purple-700') 
                                         : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
@@ -156,7 +171,7 @@ export function NewTicketPage() {
                                 <Sparkles className="w-4 h-4" /> <span>Feature</span>
                             </button>
                             <button type="button" onClick={() => setValue('tipo_ticket', 'BUG')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
                                     tipoAtual === 'BUG' 
                                         ? (isDark ? 'bg-red-900/30 border-red-500 text-red-400' : 'bg-red-50 border-red-600 text-red-700') 
                                         : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
@@ -164,7 +179,7 @@ export function NewTicketPage() {
                                 <Bug className="w-4 h-4" /> <span>Bug</span>
                             </button>
                             <button type="button" onClick={() => setValue('tipo_ticket', 'CHORE')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
                                     tipoAtual === 'CHORE' 
                                         ? (isDark ? 'bg-gray-700 border-gray-500 text-gray-200' : 'bg-gray-100 border-gray-500 text-gray-700') 
                                         : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
@@ -172,7 +187,7 @@ export function NewTicketPage() {
                                 <Wrench className="w-4 h-4" /> <span>Chore</span>
                             </button>
                             <button type="button" onClick={() => setValue('tipo_ticket', 'SUPORTE')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
                                     tipoAtual === 'SUPORTE' 
                                         ? (isDark ? 'bg-blue-900/30 border-blue-500 text-blue-400' : 'bg-blue-50 border-blue-600 text-blue-700') 
                                         : (isDark ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50')
@@ -184,7 +199,7 @@ export function NewTicketPage() {
 
                     <div>
                         <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Título *</label>
-                        <input {...register('title')} className={`${inputClass} ${errors.title ? (isDark ? 'border-red-500 bg-red-900/20' : 'border-red-500 bg-red-50') : ''}`} />
+                        <input {...register('title')} className={`${inputClass} cursor-text ${errors.title ? (isDark ? 'border-red-500 bg-red-900/20' : 'border-red-500 bg-red-50') : ''}`} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -293,7 +308,7 @@ export function NewTicketPage() {
 
                     <div>
                         <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Descrição</label>
-                        <textarea {...register('description')} rows={3} className={`${inputClass} resize-none`} />
+                        <textarea {...register('description')} rows={3} className={`${inputClass} resize-none cursor-text`} />
                     </div>
 
                     <div className={`border-t pt-6 transition-colors ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
@@ -328,16 +343,32 @@ export function NewTicketPage() {
                     </div>
 
                     <div className={`flex items-center justify-end gap-3 border-t pt-6 transition-colors ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+                        
+                        {/* 🔘 NOVO: Botão de Arquivar (Aparece apenas na Edição) */}
+                        {isEditing && (
+                            <button
+                                type="button"
+                                onClick={handleArchive}
+                                className={`mr-auto px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                                    isDark 
+                                    ? 'text-red-400 hover:bg-red-900/30' 
+                                    : 'text-red-600 hover:bg-red-50'
+                                }`}
+                            >
+                                Arquivar Chamado
+                            </button>
+                        )}
+
                         <Link
                             to="/chamados"
-                            className={`px-4 py-2 text-sm transition-colors ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`px-4 py-2 text-sm transition-colors cursor-pointer ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             Cancelar
                         </Link>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
                         >
                             {isSubmitting ? 'Salvando...' : (isEditing ? 'Atualizar Chamado' : 'Salvar Chamado')}
                         </button>
