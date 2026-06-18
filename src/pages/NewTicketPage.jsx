@@ -255,6 +255,7 @@ export function NewTicketPage() {
                                 <option value="Aprimoramento">Aprimoramento</option>
                                 <option value="Erro Operacional">Erro Operacional</option>
                                 <option value="Nova Funcionalidade">Nova Funcionalidade</option>
+                                 <option value="Demanda Interna">Demanda Interna</option>
                                 <option value="Dúvida">Dúvida</option>
                             </select>
                         </div>
