@@ -49,7 +49,8 @@ export const ticketService = {
   },
 
   // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com Data
-  async list({ status, date, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
+  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com Filtro de Período (Range)
+  async list({ status, startDate, endDate, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
     let query = supabase
       .from('tickets')
       .select(`
@@ -74,14 +75,23 @@ export const ticketService = {
       }
     }
 
-    // 🎯 Novos Filtros: Status e Data
+    // 🎯 Filtro: Status
     if (status) query = query.eq('status', status)
     
-    // Filtro para buscar registros do dia inteiro (Início 00:00:00 até Fim 23:59:59)
-    if (date) {
-      const startOfDay = new Date(`${date}T00:00:00`).toISOString()
-      const endOfDay = new Date(`${date}T23:59:59.999`).toISOString()
-      query = query.gte('created_at', startOfDay).lte('created_at', endOfDay)
+    // 🎯 Filtro: Período de Data (Início e/ou Fim)
+    if (startDate && endDate) {
+      // Pega do inicio do dia 1 até o final do dia 2
+      const start = new Date(`${startDate}T00:00:00`).toISOString()
+      const end = new Date(`${endDate}T23:59:59.999`).toISOString()
+      query = query.gte('created_at', start).lte('created_at', end)
+    } else if (startDate) {
+      // Do dia inicial para frente
+      const start = new Date(`${startDate}T00:00:00`).toISOString()
+      query = query.gte('created_at', start)
+    } else if (endDate) {
+      // Até o final do dia escolhido
+      const end = new Date(`${endDate}T23:59:59.999`).toISOString()
+      query = query.lte('created_at', end)
     }
 
     if (assignedTo) query = query.eq('assigned_to', assignedTo)

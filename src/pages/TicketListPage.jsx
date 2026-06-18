@@ -8,8 +8,7 @@ import {
   DocumentDuplicateIcon,
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
-  FunnelIcon,
-  CalendarDaysIcon
+  FunnelIcon
 } from '@heroicons/react/24/outline'
 
 export function TicketListPage() {
@@ -19,7 +18,12 @@ export function TicketListPage() {
   const currentPage = Number(searchParams.get('page')) || 1
   const searchQuery = searchParams.get('search') || ''
   const statusQuery = searchParams.get('status') || ''
-  const dateQuery = searchParams.get('date') || ''
+  const startDateQuery = searchParams.get('startDate') || ''
+  const endDateQuery = searchParams.get('endDate') || ''
+
+  // 🚀 ESTADOS LOCAIS PARA O CALENDÁRIO (Para não disparar a busca antes da hora)
+  const [localStartDate, setLocalStartDate] = useState(startDateQuery || '')
+  const [localEndDate, setLocalEndDate] = useState(endDateQuery || '')
 
   const [tickets, setTickets] = useState([])
   const [totalCount, setTotalCount] = useState(0)
@@ -30,6 +34,12 @@ export function TicketListPage() {
   
   const pageSize = 10
 
+  // 🚀 Sincroniza os inputs caso o botão "Limpar Filtros" limpe a URL
+  useEffect(() => {
+    setLocalStartDate(startDateQuery || '')
+    setLocalEndDate(endDateQuery || '')
+  }, [startDateQuery, endDateQuery])
+
   useEffect(() => {
     async function loadTickets() {
       try {
@@ -38,8 +48,9 @@ export function TicketListPage() {
           page: currentPage,
           pageSize,
           search: searchQuery,
-          status: statusQuery, // Envia o status para o backend
-          date: dateQuery      // Envia a data para o backend
+          status: statusQuery,
+          startDate: startDateQuery, 
+          endDate: endDateQuery      
         })
         setTickets(data || [])
         setTotalCount(count || 0)
@@ -50,7 +61,7 @@ export function TicketListPage() {
       }
     }
     loadTickets()
-  }, [currentPage, searchQuery, statusQuery, dateQuery])
+  }, [currentPage, searchQuery, statusQuery, startDateQuery, endDateQuery])
 
   const handlePageChange = (newPage) => {
     const params = new URLSearchParams(searchParams)
@@ -58,7 +69,7 @@ export function TicketListPage() {
     setSearchParams(params)
   }
 
-  // Função genérica e inteligente para lidar com qualquer filtro
+  // Função para os filtros em tempo real (Pesquisa e Status)
   const handleFilterChange = (key, value) => {
     const params = new URLSearchParams(searchParams)
     if (value) {
@@ -66,7 +77,27 @@ export function TicketListPage() {
     } else {
       params.delete(key)
     }
-    params.set('page', '1') // Sempre que filtrar, volta para a página 1
+    params.set('page', '1') 
+    setSearchParams(params)
+  }
+
+  // 🚀 NOVA FUNÇÃO: Aplica a busca por Período apenas no clique do botão
+  const handleApplyDateFilter = () => {
+    // Validação: Só permite buscar se ambos estiverem preenchidos (ou ambos vazios para limpar)
+    if ((localStartDate && !localEndDate) || (!localStartDate && localEndDate)) {
+      alert('Por favor, preencha tanto a data inicial quanto a data final para realizar a busca por período.')
+      return
+    }
+
+    const params = new URLSearchParams(searchParams)
+    if (localStartDate && localEndDate) {
+      params.set('startDate', localStartDate)
+      params.set('endDate', localEndDate)
+    } else {
+      params.delete('startDate')
+      params.delete('endDate')
+    }
+    params.set('page', '1')
     setSearchParams(params)
   }
 
@@ -122,11 +153,11 @@ export function TicketListPage() {
         </div>
       </div>
 
-      {/* 🚀 NOVA BARRA DE FILTROS: Busca, Status e Data */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs mb-6 flex flex-col md:flex-row gap-4 items-center">
+      {/* BARRA DE FILTROS */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs mb-6 flex flex-col xl:flex-row gap-4 items-center">
         
         {/* Filtro 1: Barra de Pesquisa */}
-        <div className="relative w-full md:flex-1">
+        <div className="relative w-full xl:flex-1">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
             <MagnifyingGlassIcon className="w-5 h-5" />
           </div>
@@ -140,7 +171,7 @@ export function TicketListPage() {
         </div>
 
         {/* Filtro 2: Status */}
-        <div className="relative w-full md:w-48 shrink-0">
+        <div className="relative w-full xl:w-48 shrink-0">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
             <FunnelIcon className="w-4 h-4" />
           </div>
@@ -158,24 +189,42 @@ export function TicketListPage() {
           </select>
         </div>
 
-        {/* Filtro 3: Período/Data (Calendário) */}
-        <div className="relative w-full md:w-48 shrink-0">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-            <CalendarDaysIcon className="w-4 h-4" />
+        {/* 🚀 Filtro 3 e 4: Bloco de Data Inicial e Final (Com Botão) */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto shrink-0 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+          <div className="relative w-full sm:w-36">
+            <input
+              type="date"
+              title="Data Inicial"
+              value={localStartDate}
+              onChange={(e) => setLocalStartDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 cursor-pointer transition"
+            />
           </div>
-          <input
-            type="date"
-            value={dateQuery}
-            onChange={(e) => handleFilterChange('date', e.target.value)}
-            className="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 cursor-pointer transition"
-          />
+          <span className="text-gray-400 text-xs font-bold uppercase hidden sm:block">Até</span>
+          <div className="relative w-full sm:w-36">
+            <input
+              type="date"
+              title="Data Final"
+              value={localEndDate}
+              onChange={(e) => setLocalEndDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 cursor-pointer transition"
+            />
+          </div>
+          <button
+            onClick={handleApplyDateFilter}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition shrink-0"
+          >
+            Buscar
+          </button>
         </div>
 
-        {/* Botão de Limpar Filtros (Aparece apenas se houver filtros ativos) */}
-        {(searchQuery || statusQuery || dateQuery) && (
+        {/* Botão de Limpar Filtros */}
+        {(searchQuery || statusQuery || startDateQuery || endDateQuery) && (
           <button
-            onClick={() => setSearchParams({ page: '1' })}
-            className="w-full md:w-auto text-xs font-semibold text-gray-500 hover:text-red-500 transition px-2 py-2 shrink-0"
+            onClick={() => {
+              setSearchParams({ page: '1' })
+            }}
+            className="w-full xl:w-auto text-xs font-semibold text-gray-500 hover:text-red-500 transition px-2 py-2 shrink-0"
           >
             Limpar Filtros
           </button>
