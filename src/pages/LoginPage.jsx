@@ -4,6 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthContext } from '../context/AuthContext'
 
+// 🚀 1. IMPORTAÇÃO DO ASSISTENTE
+import { ChatWidget } from '../components/ChatWidget'
+
 // 1. CORREÇÃO DO SCHEMA: Ordem correta para capturar campo vazio primeiro
 const schema = z.object({
     email: z
@@ -42,7 +45,8 @@ export function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+        // Adicionada a classe "relative" na div principal para o Widget
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 relative">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                 
                 {/* CABEÇALHO */}
@@ -103,10 +107,9 @@ export function LoginPage() {
                         )}
                     </div>
 
-                    {/* CONTAINER DE BOTÕES COM HIERARQUIA VISUAL CORRIGIDA */}
+                    {/* CONTAINER DE BOTÕES */}
                     <div className="space-y-3 pt-4 border-t border-gray-100 mt-6">
                         
-                        {/* AÇÃO PRIMÁRIA: Botão de Login Oficial */}
                         <button
                             type="submit"
                             disabled={isSubmitting}
@@ -115,14 +118,12 @@ export function LoginPage() {
                             {isSubmitting ? 'Autenticando...' : 'Entrar no Sistema'}
                         </button>
 
-                        {/* DIVISOR VISUAL */}
                         <div className="relative flex items-center py-1">
                             <div className="flex-grow border-t border-gray-200"></div>
                             <span className="flex-shrink mx-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ou</span>
                             <div className="flex-grow border-t border-gray-200"></div>
                         </div>
 
-                        {/* AÇÃO SECUNDÁRIA: Link de rastreio limpo, sem conflito de tags */}
                         <Link
                             to="/rastrear"
                             className="w-full flex items-center justify-center bg-sky-50 hover:bg-sky-100 text-blue-600 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-xs"
@@ -130,7 +131,6 @@ export function LoginPage() {
                             Rastrear Código de Chamado
                         </Link>
 
-                        {/* AÇÃO TERCIÁRIA: Link discreto para recuperação de senha */}
                         <div className="text-center pt-1">
                             <Link
                                 to="/ResetPassword"
@@ -142,9 +142,13 @@ export function LoginPage() {
                     </div>
                 </form>
             </div>
+
+            {/* 🚀 2. O WIDGET É RENDERIZADO AQUI NO FUNDO */}
+            <ChatWidget />
+            
         </div>
     )
 }
 
-// 4. SEGURANÇA ANTICRASH: Exportação dupla para garantir compatibilidade com qualquer App.jsx
+// 4. SEGURANÇA ANTICRASH
 export default LoginPage;
