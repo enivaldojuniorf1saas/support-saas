@@ -155,7 +155,7 @@ export const ticketService = {
     return data
   },
 
-  async addComment(ticketId, userId, note, newStatus = null) {
+  async addComment(ticketId, userId, note, newStatus = null, oldStatus = null) {
     const payload = {
       ticket_id: ticketId,
       changed_by: userId,
@@ -166,10 +166,18 @@ export const ticketService = {
       payload.new_status = newStatus
     }
 
+    // 🚀 NOVIDADE: Adicionando o status antigo no payload se ele existir
+    if (oldStatus) {
+      payload.old_status = oldStatus
+    }
+
     const { data, error } = await supabase
       .from('ticket_history')
-      .insert(payload)
-      .select('*, agent:profiles!changed_by(full_name)')
+      .insert([payload])
+      .select(`
+        *,
+        agent:profiles!ticket_history_changed_by_fkey(id, full_name)
+      `)
       .single()
 
     if (error) throw error

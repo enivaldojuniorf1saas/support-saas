@@ -108,13 +108,18 @@ export function TicketDetailPage() {
         setErro('')
         setActionLoading(true)
         try {
+            // 1. Atualiza o status principal do chamado
             const updated = await ticketService.updateStatus(id, newStatus)
+            
+            // 2. 🚀 NOVIDADE: Passando o 'ticket.status' (status antigo) como 5º parâmetro
             const historyRow = await ticketService.addComment(
                 id, 
                 user.id, 
                 `Alterou o Status Operacional para: ${newStatus}`, 
-                newStatus
+                newStatus,
+                ticket.status 
             )
+            
             setTicket(prev => prev ? { 
                 ...prev, 
                 ...updated, 

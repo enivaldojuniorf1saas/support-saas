@@ -12,7 +12,6 @@ import {
   FunnelIcon, TagIcon, BriefcaseIcon, QuestionMarkCircleIcon
 } from '@heroicons/react/24/outline'
 import { subDays, isAfter, format, parse } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 
 const CORES = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b']
 
@@ -60,17 +59,28 @@ export function DashboardPage() {
     })
   }, [tickets, periodo])
 
-  const calcularMediaTempo = (campo) => {
-    const validos = ticketsFiltrados.filter(t => t[campo] != null && t[campo] > 0)
-    if (validos.length === 0) return '-'
+  // ==========================================
+  // 🚀 NOVA LÓGICA: DATA DE CORTE E SLA
+  // ==========================================
+  const DATA_CORTE_SLA = new Date('2026-06-19T00:00:00') 
+
+  const calcularSLA = (campo) => {
+    const ticketsValidosParaSla = ticketsFiltrados.filter(t => {
+      if (!t.created_at) return false
+      return isAfter(new Date(t.created_at), DATA_CORTE_SLA)
+    })
+
+    const validos = ticketsValidosParaSla.filter(t => t[campo] != null && t[campo] > 0)
+    
+    if (validos.length === 0) return { texto: '-', raw: 0 }
     
     const soma = validos.reduce((acc, t) => acc + Number(t[campo]), 0)
     const mediaMinutos = Math.round(soma / validos.length)
     
-    if (mediaMinutos < 60) return `${mediaMinutos}m`
+    if (mediaMinutos < 60) return { texto: `${mediaMinutos}m`, raw: mediaMinutos }
     const horas = Math.floor(mediaMinutos / 60)
     const minutosRestantes = mediaMinutos % 60
-    return `${horas}h ${minutosRestantes}m`
+    return { texto: `${horas}h ${minutosRestantes}m`, raw: mediaMinutos }
   }
 
   const stats = useMemo(() => {
@@ -80,14 +90,43 @@ export function DashboardPage() {
     
     const ticketsComNps = ticketsFiltrados.filter(t => t?.nps_score !== null && t?.nps_score !== undefined)
     const npsMedio = ticketsComNps.length > 0
-      ? (ticketsComNps.reduce((acc, curr) => acc + Number(curr.nps_score), 0) / ticketsComNps.length).toFixed(1) 
-      : '-'
+      ? Number((ticketsComNps.reduce((acc, curr) => acc + Number(curr.nps_score), 0) / ticketsComNps.length).toFixed(1))
+      : 0
 
-    const tma = calcularMediaTempo('resolution_time_minutes')
-    const tmr = calcularMediaTempo('response_time_minutes')
+    const tma = calcularSLA('resolution_time_minutes')
+    const tmr = calcularSLA('response_time_minutes')
 
     return { total, abertos, finalizados, npsMedio, tma, tmr }
   }, [ticketsFiltrados])
+
+
+  const getCorTmr = (minutos) => {
+    if (!minutos || minutos === 0) return isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+    if (minutos <= 30) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200'
+    if (minutos <= 45) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200'
+    return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200'
+  }
+
+  const getCorTma = (minutos) => {
+    if (!minutos || minutos === 0) return isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+    if (minutos <= 120) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200' 
+    if (minutos <= 180) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200' 
+    return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200'
+  }
+
+  const getCorNps = (nps) => {
+    // Se não tiver avaliação ainda, fica neutro
+    if (!nps || nps === 0) return isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+    
+    // Notas 9 e 10: Promotores (Verde)
+    if (nps >= 9) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200'
+    
+    // Notas 7 e 8: Neutros (Amarelo)
+    if (nps >= 7) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200'
+    
+    // Notas 0 a 6: Detratores (Vermelho)
+    return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200'
+  }
 
   const dadosTemporais = useMemo(() => {
     if (!Array.isArray(tickets)) return []
@@ -124,15 +163,11 @@ export function DashboardPage() {
     return Object.keys(contagem).map(key => ({ name: key, value: contagem[key] }))
   }, [ticketsFiltrados])
 
-  // ==========================================
-  // 🛡️ HIGIENIZADO: TIPO_CHAMADO
-  // ==========================================
   const dadosTipoChamado = useMemo(() => {
     const contagem = ticketsFiltrados.reduce((acc, t) => {
       let tipo = t?.tipo_chamado || 'Não especificado'
       tipo = tipo.trim()
 
-      // Filtro de Padronização para o Tipo
       const tipoLower = tipo.toLowerCase()
       if (tipoLower === 'errooperacional' || tipoLower === 'erro_operacional' || tipoLower === 'erro operacional') {
         tipo = 'Erro Operacional'
@@ -145,7 +180,6 @@ export function DashboardPage() {
       } else if (tipoLower === 'dúvida' || tipoLower === 'duvida') {
         tipo = 'Dúvida'
       } else {
-        // Fallback genérico: Primeira maiúscula, resto minúscula
         tipo = tipo.charAt(0).toUpperCase() + tipo.slice(1).toLowerCase()
       }
 
@@ -210,15 +244,11 @@ export function DashboardPage() {
       .sort((a, b) => b.total - a.total)
   }, [ticketsFiltrados])
 
-  // ==========================================
-  // 🛡️ HIGIENIZADO: CATEGORIA
-  // ==========================================
   const dadosCategoria = useMemo(() => {
     const contagem = ticketsFiltrados.reduce((acc, t) => {
       let cat = t?.categoria || 'Sem categoria'
       cat = cat.trim()
 
-      // Filtro de Padronização para Categoria
       const catLower = cat.toLowerCase()
       if (catLower === 'abastecimento') {
         cat = 'Abastecimento'
@@ -283,7 +313,6 @@ export function DashboardPage() {
   return (
     <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-8 space-y-8">
       
-      {/* Cabeçalho e Filtros */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className={`text-2xl font-bold transition-colors ${isDark ? 'text-white' : 'text-gray-900'}`}>Dashboard de Atendimento</h1>
@@ -297,29 +326,51 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Cards de KPIs */}
+      {/* 🚀 AQUI ESTÁ A CORREÇÃO: CARDS DE KPIs SEPARADOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* CARDS NEUTROS (Volume) */}
         {[
-          { icon: PresentationChartLineIcon, label: 'Total Abertos', value: stats.total, colorClass: 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400' },
-          { icon: ClockIcon, label: 'Pendentes', value: stats.abertos, colorClass: 'bg-orange-50 text-orange-600 dark:bg-orange-950/50 dark:text-orange-400' },
-          { icon: CheckBadgeIcon, label: 'Finalizados', value: stats.finalizados, colorClass: 'bg-green-50 text-green-600 dark:bg-green-950/50 dark:text-green-400' },
-          { icon: BoltIcon, label: 'Média Resposta', value: stats.tmr, colorClass: 'bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400' },
-          { icon: ClockIcon, label: 'Média Atendimento', value: stats.tma, colorClass: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400' },
-          { icon: FaceSmileIcon, label: 'Média NPS', value: `${stats.npsMedio}`, suffix: '/ 10', colorClass: 'bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400' },
+          { icon: PresentationChartLineIcon, label: 'Total Abertos', value: stats.total, style: isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200', iconColor: 'text-blue-500' },
+          { icon: ClockIcon, label: 'Pendentes', value: stats.abertos, style: isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200', iconColor: 'text-orange-500' },
+          { icon: CheckBadgeIcon, label: 'Finalizados', value: stats.finalizados, style: isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200', iconColor: 'text-emerald-500' },
         ].map((card, idx) => (
-          <div key={idx} className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+          <div key={`neutral-${idx}`} className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between transition-colors duration-300 ${card.style}`}>
             <div className="flex items-center gap-3 mb-3">
-              <div className={`p-2 rounded-lg ${card.colorClass}`}><card.icon className="w-5 h-5" /></div>
+              <div className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-800 ${card.iconColor}`}><card.icon className="w-5 h-5" /></div>
               <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{card.label}</p>
             </div>
-            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {card.value} {card.suffix && <span className={`text-sm font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{card.suffix}</span>}
-            </h3>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{card.value}</h3>
           </div>
         ))}
+
+        {/* CARDS COM INTELIGÊNCIA OKR (TMR, TMA e NPS) */}
+        <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between transition-colors duration-300 ${getCorTmr(stats.tmr.raw)}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-white/50 dark:bg-black/20 text-purple-600 dark:text-purple-400"><BoltIcon className="w-5 h-5" /></div>
+              <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Média Resposta</p>
+            </div>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.tmr.texto}</h3>
+        </div>
+
+        <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between transition-colors duration-300 ${getCorTma(stats.tma.raw)}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-white/50 dark:bg-black/20 text-indigo-600 dark:text-indigo-400"><ClockIcon className="w-5 h-5" /></div>
+              <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Média Atendimento</p>
+            </div>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.tma.texto}</h3>
+        </div>
+
+        <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between transition-colors duration-300 ${getCorNps(stats.npsMedio)}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-white/50 dark:bg-black/20 text-pink-600 dark:text-pink-400"><FaceSmileIcon className="w-5 h-5" /></div>
+              <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Média NPS</p>
+            </div>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {stats.npsMedio > 0 ? stats.npsMedio : '-'} <span className="text-sm font-normal opacity-60">/ 10</span>
+            </h3>
+        </div>
       </div>
 
-      {/* SEÇÃO DO GRÁFICO TEMPORAL PRINCIPAL */}
       <div className={`p-6 rounded-xl border shadow-sm flex flex-col h-[400px] transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
         <div className="flex items-center gap-2 mb-6">
           <CalendarDaysIcon className="w-5 h-5 text-blue-500" />
@@ -350,7 +401,6 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Grid Secundário de Gráficos Operacionais */}
       {ticketsFiltrados.length === 0 ? (
         <div className={`p-12 text-center rounded-xl border transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-gray-400' : 'bg-white border-gray-200 text-gray-500'}`}>
           Nenhum chamado encontrado para os filtros operacionais deste período.
