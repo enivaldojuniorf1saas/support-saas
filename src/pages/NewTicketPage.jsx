@@ -325,18 +325,18 @@ export function NewTicketPage() {
                                 >
                                     <option value="Selecionar" disabled>-- SELECIONE O CLIENTE --</option>
                                     <option value="SUPORTE INTERNO">SUPORTE INTERNO</option>
-                                    <option value="7 SERV">7 SERV</option>
-                                    <option value="7 FACILITE">7 FACILITE</option>
-                                    <option value="AMIN BENEFICIOS">AMIN BENEFICIOS</option>
-                                    <option value="AXIS CARD">AXIS CARD</option>
+                                    <option value="7SERV">7SERV</option>
+                                    <option value="7FACILITE">7 FACILITE</option>
+                                    <option value="AMIN_BENEFICIOS">AMIN BENEFICIOS</option>
+                                    <option value="AXIS_CARD">AXIS CARD</option>
                                     <option value="B-FLUX GESTÃO">B-FLUX GESTÃO</option>
-                                    <option value="CONEXOS CARD">CONEXOS CARD</option>
-                                    <option value="FROTAPP SOLUÇÕES">FROTAPP SOLUÇÕES</option>
-                                    <option value="INTECH BENEFICIOS">INTECH BENEFICIOS</option>
-                                    <option value="NEXOS CARD">NEXOS CARD</option>
-                                    <option value="PAY BENEFICIOS">PAY BENEFICIOS</option>
-                                    <option value="SYNCMAX BENEFICIOS">SYNCMAX BENEFICIOS</option>
-                                    <option value="UNY BENEFICIOS">UNY BENEFICIOS</option>
+                                    <option value="CONEXOS_CARD">CONEXOS CARD</option>
+                                    <option value="FROTAP_SOLUÇÕES">FROTAPP SOLUÇÕES</option>
+                                    <option value="INTECH_BENEFICIOS">INTECH BENEFICIOS</option>
+                                    <option value="NEXOS_CARD">NEXOS CARD</option>
+                                    <option value="PAY_BENEFICIOS">PAY BENEFICIOS</option>
+                                    <option value="SYNCMAX_BENEFICIOS">SYNCMAX BENEFICIOS</option>
+                                    <option value="UNY_BENEFICIOS">UNY BENEFICIOS</option>
                                 </select>
                                 {errors.customer_name && <p className="text-red-500 text-xs mt-1">{errors.customer_name.message}</p>}
                             </div>
