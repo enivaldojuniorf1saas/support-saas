@@ -62,7 +62,7 @@ export function DashboardPage() {
   // ==========================================
   // 🚀 NOVA LÓGICA: DATA DE CORTE E SLA
   // ==========================================
-  const DATA_CORTE_SLA = new Date('2026-06-19T00:00:00') 
+  const DATA_CORTE_SLA = new Date('2023-01-01T00:00:00') 
 
   const calcularSLA = (campo) => {
     const ticketsValidosParaSla = ticketsFiltrados.filter(t => {
