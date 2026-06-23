@@ -62,7 +62,7 @@ export function DashboardPage() {
   // ==========================================
   // 🚀 NOVA LÓGICA: DATA DE CORTE E SLA
   // ==========================================
-  const DATA_CORTE_SLA = new Date('2023-01-01T00:00:00') 
+  const DATA_CORTE_SLA = new Date('2024-01-01T00:00:00') 
 
   const calcularSLA = (campo) => {
     const ticketsValidosParaSla = ticketsFiltrados.filter(t => {
@@ -322,7 +322,7 @@ export function DashboardPage() {
         <div className={`p-1 rounded-lg border inline-flex shadow-sm transition-colors ${isDark ? 'bg-gray-950 border-gray-800' : 'bg-white border-gray-200'}`}>
           <button onClick={() => setPeriodo('7')} className={`px-4 py-1.5 text-sm rounded-md transition ${periodo === '7' ? (isDark ? 'bg-blue-950 text-blue-400 font-medium' : 'bg-blue-50 text-blue-700 font-medium') : (isDark ? 'text-gray-400 hover:bg-gray-900' : 'text-gray-600 hover:bg-gray-50')}`}>7 dias</button>
           <button onClick={() => setPeriodo('30')} className={`px-4 py-1.5 text-sm rounded-md transition ${periodo === '30' ? (isDark ? 'bg-blue-950 text-blue-400 font-medium' : 'bg-blue-50 text-blue-700 font-medium') : (isDark ? 'text-gray-400 hover:bg-gray-900' : 'text-gray-600 hover:bg-gray-50')}`}>30 dias</button>
-          <button onClick={() => setPeriodo('all')} className={`px-4 py-1.5 text-sm rounded-md transition ${periodo === 'all' ? (isDark ? 'bg-blue-950 text-blue-400 font-medium' : 'bg-blue-50 text-blue-700 font-medium') : (isDark ? 'text-gray-400 hover:bg-gray-900' : 'text-gray-600 hover:bg-gray-50')}`}>Tudo</button>
+          <button onClick={() => setPeriodo('90')} className={`px-4 py-1.5 text-sm rounded-md transition ${periodo === '90' ? (isDark ? 'bg-blue-950 text-blue-400 font-medium' : 'bg-blue-50 text-blue-700 font-medium') : (isDark ? 'text-gray-400 hover:bg-gray-900' : 'text-gray-600 hover:bg-gray-50')}`}>90 dias</button>
         </div>
       </div>
 

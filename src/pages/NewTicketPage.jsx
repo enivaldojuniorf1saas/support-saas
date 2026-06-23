@@ -113,7 +113,7 @@ export function NewTicketPage() {
 
         setSubmitError('')
         try {
-            await ticketService.update(id, { status: 'CANCELADO' })
+            await ticketService.update(id, { status: 'FECHADO' })
             navigate('/chamados')
         } catch (err) {
             console.error("ERRO AO ARQUIVAR:", err)

@@ -202,6 +202,34 @@ export const ticketService = {
     if (error) throw error
     return data
   },
+
+  // 🗑️ NOVO: Função para Arquivar/Excluir um chamado em definitivo
+  async archiveTicket(id) {
+    try {
+      // 1. Primeiro, apagamos o histórico associado para não dar erro de restrição (Foreign Key)
+      const { error: historyError } = await supabase
+        .from('ticket_history')
+        .delete()
+        .eq('ticket_id', id)
+
+      if (historyError) throw historyError
+
+      // 2. Agora apagamos o chamado principal da tabela tickets
+      const { data, error: ticketError } = await supabase
+        .from('tickets')
+        .delete()
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (ticketError) throw ticketError
+      return true
+      
+    } catch (error) {
+      console.error("Erro no serviço ao arquivar chamado:", error)
+      throw error // Repassa o erro para a tela mostrar se algo falhar
+    }
+  },
   // 📊 NOVO: Motor de agregação de dados para o Dashboard
   async getDashboardMetrics() {
     // Busca todos os chamados abertos ou em andamento para ver o gargalo atual
