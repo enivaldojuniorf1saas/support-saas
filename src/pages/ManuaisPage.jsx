@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom' // 🚀 Adicionado para a navegação de retorno
 import { useTheme } from '../context/ThemeContext'
 import { 
   MagnifyingGlassIcon, BookOpenIcon, ChevronDownIcon, 
   ChevronRightIcon, Bars3Icon, XMarkIcon, DocumentTextIcon,
-  WrenchIcon, GiftIcon, BuildingOfficeIcon, SignalIcon, TruckIcon
+  WrenchIcon, GiftIcon, BuildingOfficeIcon, SignalIcon,
+  ArrowLeftStartOnRectangleIcon // 🚀 Ícone de porta/saída elegante para o botão voltar
 } from '@heroicons/react/24/outline'
 import { Fuel } from 'lucide-react'
 
@@ -57,6 +59,7 @@ const MENU_ESTRUTURA = [
 export function ManuaisPage() {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
+  const navigate = useNavigate() // 🚀 Inicializa a função de navegação
 
   // Estados de controle da interface
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -73,11 +76,18 @@ export function ManuaisPage() {
   return (
     <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-300 ${bgPrincipal}`}>
       
-      {/* 📱 Botão Mobile para abrir o menu lateral */}
+      {/* 📱 Topbar Mobile com botão de abrir menu e 🚀 NOVO: Botão rápido para Voltar */}
       <div className={`md:hidden flex items-center justify-between p-4 border-b ${bgSidebar}`}>
+        <button 
+          onClick={() => navigate('/login')} 
+          className={`flex items-center gap-1 text-sm font-medium ${textSecundario} hover:text-blue-500 transition-colors`}
+        >
+          <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
+          <span>Voltar</span>
+        </button>
         <div className="flex items-center gap-2">
-          <BookOpenIcon className={`w-6 h-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-          <span className={`font-bold ${textPrincipal}`}>Central de Ajuda</span>
+          <BookOpenIcon className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+          <span className={`font-bold text-sm ${textPrincipal}`}>Central de Ajuda</span>
         </div>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-md hover:bg-gray-800 transition">
           {mobileMenuOpen ? <XMarkIcon className={`w-6 h-6 ${textPrincipal}`} /> : <Bars3Icon className={`w-6 h-6 ${textPrincipal}`} />}
@@ -91,11 +101,23 @@ export function ManuaisPage() {
         ${bgSidebar} overflow-y-auto h-[calc(100vh-73px)] md:h-screen sticky top-0
       `}>
         <div className="p-6">
-          <div className="hidden md:flex items-center gap-2 mb-8">
-            <div className={`p-2 rounded-lg ${isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-              <BookOpenIcon className="w-6 h-6" />
+          
+          {/* Cabeçalho da Sidebar + 🚀 NOVO: Botão Voltar para Desktop */}
+          <div className="hidden md:flex flex-col gap-4 mb-6">
+            <button 
+              onClick={() => navigate('/login')} 
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors w-full justify-center sm:w-auto ${textPrincipal}`}
+            >
+              <ArrowLeftStartOnRectangleIcon className="w-4 h-4" />
+              <span>Voltar para o Login</span>
+            </button>
+            
+            <div className="flex items-center gap-2 border-t pt-4 dark:border-gray-800">
+              <div className={`p-2 rounded-lg ${isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                <BookOpenIcon className="w-5 h-5" />
+              </div>
+              <h1 className={`text-lg font-bold ${textPrincipal}`}>Portal de Manuais</h1>
             </div>
-            <h1 className={`text-xl font-bold ${textPrincipal}`}>Portal de Manuais</h1>
           </div>
 
           {/* Barra de Pesquisa */}

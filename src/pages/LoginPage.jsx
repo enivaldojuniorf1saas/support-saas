@@ -4,6 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthContext } from '../context/AuthContext'
 
+// 🚀 IMPORT FALTANDO: Adicionado o ícone do botão de manuais
+import { BookOpenIcon } from '@heroicons/react/24/outline' 
+
 // 🚀 1. IMPORTAÇÃO DO ASSISTENTE
 import { ChatWidget } from '../components/ChatWidget'
 
@@ -141,6 +144,20 @@ export function LoginPage() {
                         </div>
                     </div>
                 </form>
+
+                {/* 🚀 BOTÃO DE IR PARA OS MANUAIS */}
+                <div className="text-center pt-6 mt-6 border-t border-gray-200 dark:border-gray-800">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                        Precisa de ajuda com o sistema?
+                    </p>
+                    <button
+                        onClick={() => navigate('/manuais')}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors w-full justify-center sm:w-auto"
+                    >
+                        <BookOpenIcon className="w-5 h-5" />
+                        Acessar Manuais do Sistema
+                    </button>
+                </div>
             </div>
 
             {/* 🚀 2. O WIDGET É RENDERIZADO AQUI NO FUNDO */}
