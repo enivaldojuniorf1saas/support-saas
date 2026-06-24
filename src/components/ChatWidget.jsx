@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '../context/ThemeContext'
-import { supabase } from '../lib/supabase' // 🚀 Importação do Supabase
+import { supabase } from '../lib/supabase' 
 import { 
   ChatBubbleLeftEllipsisIcon, 
   XMarkIcon, 
@@ -20,6 +20,7 @@ export function ChatWidget() {
     { id: 1, text: 'Olá! Sou o assistente virtual da plataforma. Como posso ajudar você hoje?', sender: 'bot' }
   ])
 
+  // 🎯 CORREÇÃO 1: Removido o <HTMLDivElement | null> do TypeScript
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -30,6 +31,7 @@ export function ChatWidget() {
     scrollToBottom()
   }, [messages, isOpen, isLoading])
 
+  // 🎯 CORREÇÃO 2: Removido o (e?: React.FormEvent) do TypeScript
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault()
     if (!inputValue.trim()) return
@@ -42,16 +44,17 @@ export function ChatWidget() {
     setIsLoading(true)
 
     try {
-      // 🚀 A MÁGICA ACONTECE AQUI: Chama a Edge Function que você acabou de publicar!
       const { data, error } = await supabase.functions.invoke('chat-assistant', {
         body: { message: userText }
       })
 
       if (error) throw error
+      
+      console.log("Resposta que chegou do Supabase:", data)
 
       const botResponse = { 
         id: Date.now() + 1, 
-        text: data.response, 
+        text: data.reply, 
         sender: 'bot' 
       }
       setMessages((prev) => [...prev, botResponse])
@@ -106,7 +109,6 @@ export function ChatWidget() {
               </div>
             ))}
             
-            {/* Indicador de carregamento enquanto a IA pensa */}
             {isLoading && (
               <div className="flex w-full justify-start">
                 <div className={`rounded-2xl px-4 py-3 shadow-sm flex gap-1 items-center ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>

@@ -8,6 +8,7 @@ import {
   ArrowLeftStartOnRectangleIcon // 🚀 Ícone de porta/saída elegante para o botão voltar
 } from '@heroicons/react/24/outline'
 import { Fuel } from 'lucide-react'
+import { ChatWidget } from '../components/ChatWidget'
 
 // 🗂️ MOCK: Estrutura que virá do Supabase futuramente
 const MENU_ESTRUTURA = [
@@ -275,6 +276,8 @@ export function ManuaisPage() {
 
         </div>
       </main>
+      {/* 🚀 O WIDGET DE SUPORTE FLUTUANTE ENTRA AQUI */}
+      <ChatWidget />
     </div>
   )
 }
