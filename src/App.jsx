@@ -12,6 +12,8 @@ import { UsersPage }          from './pages/UsersPage'
 import { NpsPage }            from './pages/NpsPage'
 import { TrackingPage }       from './pages/TrackingPage'
 import { ResetPassword }      from './pages/ResetPassword'
+import { ManuaisPage } from './pages/ManuaisPage'
+
 
 export default function App() {
   return (
@@ -24,6 +26,9 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/ResetPassword" element={<ResetPassword />} /> {/* 🚀 Rota inserida aqui! */}
             <Route path="/avaliar/:id" element={<NpsPage />} />
+            <Route path="/manuais" element={<ManuaisPage />} />
+            {/* 🚀 A sua nova rota pública de manuais */}
+            
             
             {/* Nota: Se o seu link de rastrear for genérico, talvez precise de uma rota sem o /:id também */}
             <Route path="/rastrear/:id" element={<TrackingPage />} />
