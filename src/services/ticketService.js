@@ -48,9 +48,8 @@ export const ticketService = {
     return data
   },
 
-  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com Data
-  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com Filtro de Período (Range)
-  async list({ status, startDate, endDate, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
+  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com Filtros Completos (Status, Tipo e Data)
+  async list({ status, type, startDate, endDate, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
     let query = supabase
       .from('tickets')
       .select(`
@@ -77,6 +76,9 @@ export const ticketService = {
 
     // 🎯 Filtro: Status
     if (status) query = query.eq('status', status)
+    
+    // 🚀 NOVO FILTRO: Tipo de Chamado
+    if (type) query = query.eq('tipo_chamado', type)
     
     // 🎯 Filtro: Período de Data (Início e/ou Fim)
     if (startDate && endDate) {
@@ -230,6 +232,7 @@ export const ticketService = {
       throw error // Repassa o erro para a tela mostrar se algo falhar
     }
   },
+  
   // 📊 NOVO: Motor de agregação de dados para o Dashboard
   async getDashboardMetrics() {
     // Busca todos os chamados abertos ou em andamento para ver o gargalo atual
@@ -267,5 +270,4 @@ export const ticketService = {
       porCategoria: formatChartData(categoriaAgrupada)
     }
   }
-  
 }
