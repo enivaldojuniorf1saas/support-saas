@@ -192,7 +192,6 @@ export function TicketListPage() {
           </select>
         </div>
 
-        {/* 🚀 Filtro 2.5: Tipo de Chamado */}
         {/* 🚀 Filtro 2.5: Tipo de Chamado (Sincronizado com a NewTicketPage) */}
         <div className="relative w-full xl:w-48 shrink-0">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
@@ -242,7 +241,7 @@ export function TicketListPage() {
           </button>
         </div>
 
-        {/* Botão de Limpar Filtros (Atualizado com typeQuery) */}
+        {/* Botão de Limpar Filtros */}
         {(searchQuery || statusQuery || typeQuery || startDateQuery || endDateQuery) && (
           <button
             onClick={() => {
@@ -254,6 +253,16 @@ export function TicketListPage() {
           </button>
         )}
       </div>
+
+      {/* 🚀 TOTALIZADOR ABAIXO DOS FILTROS (ALINHADO À DIREITA COM DESTAQUE) */}
+      {!loading && (
+        <div className="mb-4 flex items-center justify-end px-1 animate-fade-in">
+          <div className="inline-flex items-center gap-2.5 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-1.5 rounded-xl text-sm font-bold shadow-sm">
+
+            {totalCount} {totalCount === 1 ? 'registro encontrado' : 'registros encontrados'}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 text-sm text-gray-400 font-medium">
