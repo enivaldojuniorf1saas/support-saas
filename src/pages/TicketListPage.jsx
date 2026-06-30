@@ -8,7 +8,8 @@ import {
   DocumentDuplicateIcon,
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
-  FunnelIcon
+  FunnelIcon,
+  TagIcon // 🚀 Adicionado para diferenciar o ícone do novo filtro
 } from '@heroicons/react/24/outline'
 
 export function TicketListPage() {
@@ -18,6 +19,7 @@ export function TicketListPage() {
   const currentPage = Number(searchParams.get('page')) || 1
   const searchQuery = searchParams.get('search') || ''
   const statusQuery = searchParams.get('status') || ''
+  const typeQuery = searchParams.get('type') || '' // 🚀 NOVO FILTRO: Tipo de chamado
   const startDateQuery = searchParams.get('startDate') || ''
   const endDateQuery = searchParams.get('endDate') || ''
 
@@ -49,6 +51,7 @@ export function TicketListPage() {
           pageSize,
           search: searchQuery,
           status: statusQuery,
+          type: typeQuery, // 🚀 NOVO FILTRO: Passado para o service
           startDate: startDateQuery, 
           endDate: endDateQuery      
         })
@@ -61,7 +64,7 @@ export function TicketListPage() {
       }
     }
     loadTickets()
-  }, [currentPage, searchQuery, statusQuery, startDateQuery, endDateQuery])
+  }, [currentPage, searchQuery, statusQuery, typeQuery, startDateQuery, endDateQuery]) // 🚀 Atualizado array de dependências
 
   const handlePageChange = (newPage) => {
     const params = new URLSearchParams(searchParams)
@@ -69,7 +72,7 @@ export function TicketListPage() {
     setSearchParams(params)
   }
 
-  // Função para os filtros em tempo real (Pesquisa e Status)
+  // Função para os filtros em tempo real (Pesquisa, Status e Tipo)
   const handleFilterChange = (key, value) => {
     const params = new URLSearchParams(searchParams)
     if (value) {
@@ -189,6 +192,27 @@ export function TicketListPage() {
           </select>
         </div>
 
+        {/* 🚀 Filtro 2.5: Tipo de Chamado */}
+        {/* 🚀 Filtro 2.5: Tipo de Chamado (Sincronizado com a NewTicketPage) */}
+        <div className="relative w-full xl:w-48 shrink-0">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <TagIcon className="w-4 h-4" />
+          </div>
+          <select
+            value={typeQuery}
+            onChange={(e) => handleFilterChange('type', e.target.value)}
+            className="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 cursor-pointer transition appearance-none"
+          >
+            <option value="">Todos os Tipos</option>
+            <option value="Bug">Bug</option>
+            <option value="Aprimoramento">Aprimoramento</option>
+            <option value="Erro Operacional">Erro Operacional</option>
+            <option value="Nova Funcionalidade">Nova Funcionalidade</option>
+            <option value="Demanda Interna">Demanda Interna</option>
+            <option value="Dúvida">Dúvida</option>
+          </select>
+        </div>
+
         {/* 🚀 Filtro 3 e 4: Bloco de Data Inicial e Final (Com Botão) */}
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto shrink-0 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
           <div className="relative w-full sm:w-36">
@@ -218,8 +242,8 @@ export function TicketListPage() {
           </button>
         </div>
 
-        {/* Botão de Limpar Filtros */}
-        {(searchQuery || statusQuery || startDateQuery || endDateQuery) && (
+        {/* Botão de Limpar Filtros (Atualizado com typeQuery) */}
+        {(searchQuery || statusQuery || typeQuery || startDateQuery || endDateQuery) && (
           <button
             onClick={() => {
               setSearchParams({ page: '1' })
