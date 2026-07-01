@@ -12,8 +12,10 @@ import { UsersPage }          from './pages/UsersPage'
 import { NpsPage }            from './pages/NpsPage'
 import { TrackingPage }       from './pages/TrackingPage'
 import { ResetPassword }      from './pages/ResetPassword'
-import { ManuaisPage } from './pages/ManuaisPage'
 
+// 🚀 IMPORTAÇÕES SEPARADAS: Backoffice e Área Pública
+import { ManuaisPage }        from './pages/ManuaisPage'
+import { PublicManuaisPage }  from './pages/PublicManuaisPage'
 
 export default function App() {
   return (
@@ -24,15 +26,13 @@ export default function App() {
             
             {/* 🟢 ROTAS PÚBLICAS (Sem verificação de Login para o Cliente Final) */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/ResetPassword" element={<ResetPassword />} /> {/* 🚀 Rota inserida aqui! */}
+            <Route path="/ResetPassword" element={<ResetPassword />} />
             <Route path="/avaliar/:id" element={<NpsPage />} />
-            <Route path="/manuais" element={<ManuaisPage />} />
-            {/* 🚀 A sua nova rota pública de manuais */}
-            
-            
-            {/* Nota: Se o seu link de rastrear for genérico, talvez precise de uma rota sem o /:id também */}
             <Route path="/rastrear/:id" element={<TrackingPage />} />
             <Route path="/rastrear" element={<TrackingPage />} />
+            
+            {/* 🚀 NOVA ROTA PÚBLICA: Leitura dos manuais e IA */}
+            <Route path="/ajuda" element={<PublicManuaisPage />} />
             
             {/* REDIRECIONAMENTO PADRÃO */}
             <Route path="/" element={<Navigate to="/chamados" replace />} />
@@ -47,6 +47,9 @@ export default function App() {
             <Route path="/dashboard" element={<ProtectedLayout requireGestor><DashboardPage /></ProtectedLayout>} />
             <Route path="/importar" element={<ProtectedLayout requireGestor><ImportPage /></ProtectedLayout>} />
             <Route path="/equipa" element={<ProtectedLayout requireGestor><UsersPage /></ProtectedLayout>} />
+            
+            {/* 🚀 ROTA PROTEGIDA: Apenas o gestor pode cadastrar e editar manuais */}
+            <Route path="/manuais" element={<ProtectedLayout requireGestor><ManuaisPage /></ProtectedLayout>} />
             
           </Routes>
         </BrowserRouter>

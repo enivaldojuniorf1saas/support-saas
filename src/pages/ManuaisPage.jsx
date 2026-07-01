@@ -1,283 +1,275 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom' // 🚀 Adicionado para a navegação de retorno
-import { useTheme } from '../context/ThemeContext'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { 
-  MagnifyingGlassIcon, BookOpenIcon, ChevronDownIcon, 
-  ChevronRightIcon, Bars3Icon, XMarkIcon, DocumentTextIcon,
-  WrenchIcon, GiftIcon, BuildingOfficeIcon, SignalIcon,
-  ArrowLeftStartOnRectangleIcon // 🚀 Ícone de porta/saída elegante para o botão voltar
+  BookOpenIcon, 
+  PlusIcon, 
+  TrashIcon, 
+  XMarkIcon,
+  DocumentTextIcon,
+  EyeIcon // 🚀 Ícone de leitura adicionado
 } from '@heroicons/react/24/outline'
-import { Fuel } from 'lucide-react'
-import { ChatWidget } from '../components/ChatWidget'
-
-// 🗂️ MOCK: Estrutura que virá do Supabase futuramente
-const MENU_ESTRUTURA = [
-  {
-    modulo: 'Abastecimento',
-    icone: Fuel,
-    categorias: [
-      {
-        nome: 'Cliente',
-        artigos: [
-          { id: 'abs-cli-1', titulo: 'Como cadastrar frotas e veículos' },
-          { id: 'abs-cli-2', titulo: 'Definindo limites de crédito' }
-        ]
-      },
-      {
-        nome: 'Credenciado',
-        artigos: [
-          { id: 'abs-cred-1', titulo: 'Operando o painel do posto' },
-          { id: 'abs-cred-2', titulo: 'Baixa de transações offline' }
-        ]
-      },
-      {
-        nome: 'Apps',
-        artigos: [
-          { id: 'abs-app-1', titulo: 'Guia do App Motorista' },
-          { id: 'abs-app-2', titulo: 'Guia do App Gestor' }
-        ]
-      }
-    ]
-  },
-  {
-    modulo: 'Manutenção',
-    icone: WrenchIcon,
-    categorias: [
-      {
-        nome: 'Geral',
-        artigos: [
-          { id: 'man-1', titulo: 'Abertura de O.S. de Manutenção' },
-          { id: 'man-2', titulo: 'Tabela de peças e serviços' }
-        ]
-      }
-    ]
-  },
-  { modulo: 'Benefícios', icone: GiftIcon, categorias: [] },
-  { modulo: 'Patrimônio', icone: BuildingOfficeIcon, categorias: [] },
-  { modulo: 'Telemetria', icone: SignalIcon, categorias: [] },
-]
 
 export function ManuaisPage() {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-  const navigate = useNavigate() // 🚀 Inicializa a função de navegação
+  const [manuais, setManuais] = useState([])
+  const [loading, setLoading] = useState(true)
+  
+  // Controle de Modais
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [manualSelecionado, setManualSelecionado] = useState(null) // 🚀 Estado para ler o manual
+  const [isSaving, setIsSaving] = useState(false)
+  
+  // Estados do formulário
+  const [titulo, setTitulo] = useState('')
+  const [conteudo, setConteudo] = useState('')
 
-  // Estados de controle da interface
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [busca, setBusca] = useState('')
-  const [moduloExpandido, setModuloExpandido] = useState('Abastecimento') // Qual módulo está aberto
-  const [artigoAtivo, setArtigoAtivo] = useState('abs-cli-1') // Qual artigo está a ser lido
+  // 🔄 Carrega os manuais do banco de dados
+  const fetchManuais = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('manuais')
+        .select('id, titulo, conteudo, created_at')
+        .order('created_at', { ascending: false })
 
-  // Cores dinâmicas baseadas no tema
-  const bgPrincipal = isDark ? 'bg-[#0b0f19]' : 'bg-gray-50'
-  const bgSidebar = isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-  const textPrincipal = isDark ? 'text-white' : 'text-gray-900'
-  const textSecundario = isDark ? 'text-gray-400' : 'text-gray-500'
+      if (error) throw error
+      setManuais(data || [])
+    } catch (error) {
+      console.error('Erro ao buscar manuais:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchManuais()
+  }, [])
+
+  // 💾 Salva um novo manual e gera o Embedding (Vetor) da IA
+  const handleSave = async (e) => {
+    e.preventDefault()
+    if (!titulo.trim() || !conteudo.trim()) return
+
+    try {
+      setIsSaving(true)
+      
+      // 1. Salva o texto no banco e já pede para retornar o ID dele (.select().single())
+      const { data: novoManual, error } = await supabase
+        .from('manuais')
+        .insert([{ titulo, conteudo }])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // 🚀 2. Chama a nuvem para gerar a Memória da IA!
+      await supabase.functions.invoke('generate-embedding', {
+        body: { 
+          record_id: novoManual.id, 
+          texto: `Título: ${titulo}\nConteúdo: ${conteudo}` 
+        }
+      })
+
+      // Limpa o formulário e atualiza a lista
+      setTitulo('')
+      setConteudo('')
+      setIsModalOpen(false)
+      fetchManuais()
+    } catch (error) {
+      console.error('Erro ao salvar manual:', error)
+      alert('Ocorreu um erro ao salvar o manual e gerar o aprendizado da IA.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // 🗑️ Exclui um manual
+  const handleDelete = async (id) => {
+    if (!window.confirm('Tem certeza que deseja excluir este manual? A IA deixará de ter acesso a esta informação.')) return
+
+    try {
+      const { error } = await supabase
+        .from('manuais')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      fetchManuais()
+    } catch (error) {
+      console.error('Erro ao excluir manual:', error)
+    }
+  }
 
   return (
-    <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-300 ${bgPrincipal}`}>
+    <div className="p-4 md:p-8 w-full max-w-6xl mx-auto bg-gray-50/50 min-h-screen">
       
-      {/* 📱 Topbar Mobile com botão de abrir menu e 🚀 NOVO: Botão rápido para Voltar */}
-      <div className={`md:hidden flex items-center justify-between p-4 border-b ${bgSidebar}`}>
-        <button 
-          onClick={() => navigate('/login')} 
-          className={`flex items-center gap-1 text-sm font-medium ${textSecundario} hover:text-blue-500 transition-colors`}
-        >
-          <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
-          <span>Voltar</span>
-        </button>
-        <div className="flex items-center gap-2">
-          <BookOpenIcon className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-          <span className={`font-bold text-sm ${textPrincipal}`}>Central de Ajuda</span>
+      {/* Cabeçalho */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gestão de Manuais</h1>
+            {!loading && (
+              <span className="bg-blue-100 text-blue-700 py-1 px-3 rounded-full text-xs font-bold shadow-sm">
+                {manuais.length} {manuais.length === 1 ? 'documento' : 'documentos'}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 mt-1">Gerencie os manuais e tutoriais que alimentam a Inteligência Artificial do F1SaaS.</p>
         </div>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-md hover:bg-gray-800 transition">
-          {mobileMenuOpen ? <XMarkIcon className={`w-6 h-6 ${textPrincipal}`} /> : <Bars3Icon className={`w-6 h-6 ${textPrincipal}`} />}
+
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md transition cursor-pointer"
+        >
+          <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+          Novo Manual
         </button>
       </div>
 
-      {/* 🧭 SIDEBAR DE NAVEGAÇÃO */}
-      <aside className={`
-        ${mobileMenuOpen ? 'block' : 'hidden'} md:block 
-        w-full md:w-80 border-r flex-shrink-0 z-10 transition-colors duration-300
-        ${bgSidebar} overflow-y-auto h-[calc(100vh-73px)] md:h-screen sticky top-0
-      `}>
-        <div className="p-6">
-          
-          {/* Cabeçalho da Sidebar + 🚀 NOVO: Botão Voltar para Desktop */}
-          <div className="hidden md:flex flex-col gap-4 mb-6">
-            <button 
-              onClick={() => navigate('/login')} 
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors w-full justify-center sm:w-auto ${textPrincipal}`}
-            >
-              <ArrowLeftStartOnRectangleIcon className="w-4 h-4" />
-              <span>Voltar para o Login</span>
-            </button>
-            
-            <div className="flex items-center gap-2 border-t pt-4 dark:border-gray-800">
-              <div className={`p-2 rounded-lg ${isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-                <BookOpenIcon className="w-5 h-5" />
-              </div>
-              <h1 className={`text-lg font-bold ${textPrincipal}`}>Portal de Manuais</h1>
-            </div>
-          </div>
-
-          {/* Barra de Pesquisa */}
-          <div className="relative mb-8">
-            <MagnifyingGlassIcon className={`absolute left-3 top-2.5 w-5 h-5 ${textSecundario}`} />
-            <input 
-              type="text" 
-              placeholder="Buscar nos manuais..." 
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2 text-sm rounded-lg border outline-none transition-colors
-                ${isDark ? 'bg-gray-950 border-gray-700 text-gray-200 focus:border-blue-500' : 'bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500'}
-              `}
-            />
-          </div>
-
-          {/* Renderização Dinâmica dos Módulos */}
-          <nav className="space-y-2">
-            {MENU_ESTRUTURA.map((modulo) => (
-              <div key={modulo.modulo} className="flex flex-col">
-                <button 
-                  onClick={() => setModuloExpandido(moduloExpandido === modulo.modulo ? '' : modulo.modulo)}
-                  className={`flex items-center justify-between w-full p-2 rounded-lg text-sm font-semibold transition
-                    ${moduloExpandido === modulo.modulo ? (isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900') : `hover:${isDark ? 'bg-gray-800' : 'bg-gray-100'} ${textSecundario}`}
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <modulo.icone className="w-5 h-5" />
-                    {modulo.modulo}
-                  </div>
-                  {moduloExpandido === modulo.modulo ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronRightIcon className="w-4 h-4" />}
-                </button>
-
-                {/* Subcategorias e Artigos */}
-                {moduloExpandido === modulo.modulo && modulo.categorias.length > 0 && (
-                  <div className="ml-4 mt-2 space-y-4 border-l-2 border-gray-200 dark:border-gray-800 pl-4 py-2">
-                    {modulo.categorias.map(cat => (
-                      <div key={cat.nome}>
-                        <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{cat.nome}</h4>
-                        <ul className="space-y-1">
-                          {cat.artigos.map(artigo => (
-                            <li key={artigo.id}>
-                              <button 
-                                onClick={() => { setArtigoAtivo(artigo.id); setMobileMenuOpen(false); }}
-                                className={`flex items-center gap-2 w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors
-                                  ${artigoAtivo === artigo.id ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' : `${textSecundario} hover:bg-gray-100 dark:hover:bg-gray-800`}
-                                `}
-                              >
-                                <DocumentTextIcon className="w-4 h-4 opacity-70" />
-                                <span className="truncate">{artigo.titulo}</span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {moduloExpandido === modulo.modulo && modulo.categorias.length === 0 && (
-                  <p className={`text-xs ml-9 mt-2 italic ${textSecundario}`}>Em breve...</p>
-                )}
-              </div>
-            ))}
-          </nav>
-
+      {/* Lista de Manuais */}
+      {loading ? (
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 text-sm text-gray-400 font-medium">
+          Carregando base de conhecimento...
         </div>
-      </aside>
-
-      {/* 📖 ÁREA PRINCIPAL (LEITURA DO MANUAL) */}
-      <main className="flex-1 overflow-y-auto h-screen p-6 md:p-12 lg:px-24">
-        <div className="max-w-4xl mx-auto">
-          
-          {/* Breadcrumbs (Caminho do pão) */}
-          <div className={`flex items-center gap-2 text-sm mb-8 ${textSecundario}`}>
-            <span>Abastecimento</span>
-            <ChevronRightIcon className="w-3 h-3" />
-            <span>Cliente</span>
-            <ChevronRightIcon className="w-3 h-3" />
-            <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Como cadastrar frotas e veículos</span>
-          </div>
-
-          {/* Cabeçalho do Artigo */}
-          <header className="mb-10">
-            <h1 className={`text-3xl md:text-4xl font-extrabold tracking-tight mb-4 ${textPrincipal}`}>Como cadastrar frotas e veículos</h1>
-            <p className={`text-base ${textSecundario}`}>
-              Aprenda a estruturar a frota do cliente no sistema, adicionando placas, motoristas vinculados e restrições de regras de negócio.
-            </p>
-            <div className={`flex items-center gap-4 mt-6 text-xs font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              <div className="flex items-center gap-1"><BookOpenIcon className="w-4 h-4" /> Leitura de 4 min</div>
-              <span>•</span>
-              <div>Atualizado há 2 dias por Suporte N2</div>
-            </div>
-          </header>
-
-          <hr className={`my-8 border ${isDark ? 'border-gray-800' : 'border-gray-200'}`} />
-
-          {/* SIMULAÇÃO DE RENDERIZAÇÃO MARKDOWN */}
-          <article className={`space-y-6 text-base leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            
-            <p>O cadastro de frotas é o coração do módulo de abastecimento. É através dele que o sistema valida no momento de passar o cartão no posto de gasolina se aquele veículo está autorizado a abastecer o tipo de combustível selecionado.</p>
-
-            <h2 className={`text-2xl font-bold mt-10 mb-4 ${textPrincipal}`}>1. Acessando o painel</h2>
-            <p>Para iniciar o cadastro, você precisará ter perfil de <strong>Gestor de Frota</strong> ou superior.</p>
-            <ul className="list-disc pl-6 space-y-2 mt-2">
-              <li>No menu principal lateral esquerdo, clique em <span className={`px-2 py-0.5 rounded text-sm ${isDark ? 'bg-gray-800 text-gray-200' : 'bg-gray-200 text-gray-800'}`}>Abastecimento</span>.</li>
-              <li>Navegue até a aba <span className={`px-2 py-0.5 rounded text-sm ${isDark ? 'bg-gray-800 text-gray-200' : 'bg-gray-200 text-gray-800'}`}>Gerenciamento de Frotas</span>.</li>
-              <li>Clique no botão azul <strong>+ Novo Veículo</strong> no canto superior direito da tela.</li>
-            </ul>
-
-            <div className={`p-4 rounded-xl border mt-8 ${isDark ? 'bg-blue-900/20 border-blue-900/50' : 'bg-blue-50 border-blue-200'}`}>
-              <div className="flex gap-3">
-                <DocumentTextIcon className={`w-6 h-6 flex-shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-                <div>
-                  <h4 className={`font-bold text-sm ${isDark ? 'text-blue-400' : 'text-blue-800'}`}>Dica de Ouro</h4>
-                  <p className={`text-sm mt-1 ${isDark ? 'text-gray-300' : 'text-blue-900/80'}`}>Se você tiver mais de 50 veículos para cadastrar, não faça isso manualmente. Utilize o nosso importador de planilhas CSV na tela de configurações em lote.</p>
+      ) : manuais.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 text-sm text-gray-500 shadow-xs flex flex-col items-center">
+          <BookOpenIcon className="w-12 h-12 text-gray-300 mb-3" />
+          <p>Nenhum manual cadastrado ainda.</p>
+          <p className="text-xs mt-1 text-gray-400">Adicione o primeiro documento para a IA começar a aprender.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {manuais.map((manual) => (
+            <div key={manual.id} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+              <div className="flex items-start justify-between mb-3">
+                <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+                  <DocumentTextIcon className="w-6 h-6" />
                 </div>
+                <button 
+                  onClick={() => handleDelete(manual.id)}
+                  className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                  title="Excluir Manual"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                </button>
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{manual.titulo}</h3>
+              <p className="text-sm text-gray-500 line-clamp-3 mb-4 flex-1">
+                {manual.conteudo}
+              </p>
+              
+              {/* 🚀 Botão para abrir o modal de Leitura */}
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  {new Date(manual.created_at).toLocaleDateString('pt-BR')}
+                </div>
+                <button 
+                  onClick={() => setManualSelecionado(manual)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                >
+                  <EyeIcon className="w-4 h-4" />
+                  Ler manual
+                </button>
               </div>
             </div>
+          ))}
+        </div>
+      )}
 
-            <h2 className={`text-2xl font-bold mt-10 mb-4 ${textPrincipal}`}>2. Configurando Regras de Restrição</h2>
-            <p>Após preencher os dados básicos (Placa, Renavam e Marca/Modelo), o sistema exigirá que você determine as regras de segurança:</p>
-            
-            <div className="overflow-x-auto mt-4 rounded-lg border dark:border-gray-800">
-              <table className="w-full text-sm text-left">
-                <thead className={`text-xs uppercase ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
-                  <tr>
-                    <th className="px-6 py-3">Tipo de Regra</th>
-                    <th className="px-6 py-3">Comportamento do Sistema</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-gray-800">
-                  <tr className={isDark ? 'bg-gray-900' : 'bg-white'}>
-                    <td className="px-6 py-4 font-medium text-principal">Combustível Específico</td>
-                    <td className="px-6 py-4">Bloqueia a bomba se o produto for diferente do parametrizado (ex: Bloqueia Gasolina para caminhões a Diesel).</td>
-                  </tr>
-                  <tr className={isDark ? 'bg-gray-900' : 'bg-white'}>
-                    <td className="px-6 py-4 font-medium text-principal">Cota Mensal (L)</td>
-                    <td className="px-6 py-4">Trava a autorização ao atingir o limite estipulado em litros no mês vigente.</td>
-                  </tr>
-                </tbody>
-              </table>
+      {/* 📖 MODAL DE LEITURA */}
+      {manualSelecionado && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <h2 className="text-lg font-bold text-gray-900 pr-4">{manualSelecionado.titulo}</h2>
+              <button 
+                onClick={() => setManualSelecionado(null)}
+                className="text-gray-400 hover:text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 p-2 rounded-full transition cursor-pointer shrink-0"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
             </div>
-
-            <p className="mt-8">Após revisar todas as informações, clique em <strong>Salvar Veículo</strong>. Ele estará apto para transacionar na rede credenciada em no máximo 5 minutos.</p>
-          </article>
-          
-          {/* Rodapé de Feedback do Artigo */}
-          <div className={`mt-16 py-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-            <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Este manual foi útil para resolver sua dúvida?</p>
-            <div className="flex gap-2">
-              <button className={`px-4 py-2 text-sm font-medium rounded-lg border transition ${isDark ? 'border-gray-700 hover:bg-gray-800 text-gray-300' : 'border-gray-300 hover:bg-gray-50 text-gray-700'}`}>👍 Sim, ajudou muito</button>
-              <button className={`px-4 py-2 text-sm font-medium rounded-lg border transition ${isDark ? 'border-gray-700 hover:bg-gray-800 text-gray-300' : 'border-gray-300 hover:bg-gray-50 text-gray-700'}`}>👎 Ainda tenho dúvidas</button>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
+                {manualSelecionado.conteudo}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setManualSelecionado(null)}
+                className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-200 bg-gray-100 rounded-xl transition cursor-pointer"
+              >
+                Fechar
+              </button>
             </div>
           </div>
-
         </div>
-      </main>
-      {/* 🚀 O WIDGET DE SUPORTE FLUTUANTE ENTRA AQUI */}
-      <ChatWidget />
+      )}
+
+      {/* ➕ MODAL DE NOVO MANUAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Cadastrar Novo Manual</h2>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition cursor-pointer"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Título do Manual
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  placeholder="Ex: Como redefinir a senha do usuário"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400 transition"
+                />
+              </div>
+
+              <div className="flex-1 flex flex-col">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Conteúdo (Regras, passos e explicações)
+                </label>
+                <textarea
+                  required
+                  value={conteudo}
+                  onChange={(e) => setConteudo(e.target.value)}
+                  placeholder="Descreva detalhadamente as instruções. A Inteligência Artificial lerá este texto para responder aos clientes..."
+                  className="w-full flex-1 min-h-[250px] border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400 transition resize-none"
+                />
+              </div>
+            </form>
+
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-200 bg-gray-100 rounded-xl transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving || !titulo.trim() || !conteudo.trim()}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 rounded-xl transition shadow-sm flex items-center gap-2 cursor-pointer"
+              >
+                {isSaving ? 'Salvando...' : 'Salvar Manual'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
