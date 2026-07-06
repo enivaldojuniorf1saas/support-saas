@@ -9,7 +9,13 @@ import {
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
   FunnelIcon,
-  TagIcon // 🚀 Adicionado para diferenciar o ícone do novo filtro
+  TagIcon,
+  FlagIcon, // Ícone do menu dropdown
+  ExclamationTriangleIcon, // 🚀 Ícone "Urgente"
+  ExclamationCircleIcon,   // 🚀 Ícone "Alta"
+  ChevronUpIcon,           // 🚀 Ícone "Média"
+  ChevronDownIcon,         // 🚀 Ícone "Baixa"
+  MinusIcon                // 🚀 Ícone "Nenhuma"
 } from '@heroicons/react/24/outline'
 
 export function TicketListPage() {
@@ -19,11 +25,11 @@ export function TicketListPage() {
   const currentPage = Number(searchParams.get('page')) || 1
   const searchQuery = searchParams.get('search') || ''
   const statusQuery = searchParams.get('status') || ''
-  const typeQuery = searchParams.get('type') || '' // 🚀 NOVO FILTRO: Tipo de chamado
+  const typeQuery = searchParams.get('type') || ''
+  const priorityQuery = searchParams.get('priority') || '' // 🚀 NOVO FILTRO NA URL
   const startDateQuery = searchParams.get('startDate') || ''
   const endDateQuery = searchParams.get('endDate') || ''
 
-  // 🚀 ESTADOS LOCAIS PARA O CALENDÁRIO (Para não disparar a busca antes da hora)
   const [localStartDate, setLocalStartDate] = useState(startDateQuery || '')
   const [localEndDate, setLocalEndDate] = useState(endDateQuery || '')
 
@@ -36,7 +42,6 @@ export function TicketListPage() {
   
   const pageSize = 10
 
-  // 🚀 Sincroniza os inputs caso o botão "Limpar Filtros" limpe a URL
   useEffect(() => {
     setLocalStartDate(startDateQuery || '')
     setLocalEndDate(endDateQuery || '')
@@ -51,7 +56,8 @@ export function TicketListPage() {
           pageSize,
           search: searchQuery,
           status: statusQuery,
-          type: typeQuery, // 🚀 NOVO FILTRO: Passado para o service
+          type: typeQuery,
+          priority: priorityQuery, // 🚀 ENVIANDO PARA O BANCO DE DADOS
           startDate: startDateQuery, 
           endDate: endDateQuery      
         })
@@ -64,7 +70,7 @@ export function TicketListPage() {
       }
     }
     loadTickets()
-  }, [currentPage, searchQuery, statusQuery, typeQuery, startDateQuery, endDateQuery]) // 🚀 Atualizado array de dependências
+  }, [currentPage, searchQuery, statusQuery, typeQuery, priorityQuery, startDateQuery, endDateQuery])
 
   const handlePageChange = (newPage) => {
     const params = new URLSearchParams(searchParams)
@@ -72,7 +78,6 @@ export function TicketListPage() {
     setSearchParams(params)
   }
 
-  // Função para os filtros em tempo real (Pesquisa, Status e Tipo)
   const handleFilterChange = (key, value) => {
     const params = new URLSearchParams(searchParams)
     if (value) {
@@ -84,9 +89,7 @@ export function TicketListPage() {
     setSearchParams(params)
   }
 
-  // 🚀 NOVA FUNÇÃO: Aplica a busca por Período apenas no clique do botão
   const handleApplyDateFilter = () => {
-    // Validação: Só permite buscar se ambos estiverem preenchidos (ou ambos vazios para limpar)
     if ((localStartDate && !localEndDate) || (!localStartDate && localEndDate)) {
       alert('Por favor, preencha tanto a data inicial quanto a data final para realizar a busca por período.')
       return
@@ -104,8 +107,53 @@ export function TicketListPage() {
     setSearchParams(params)
   }
 
+  // 🚀 NOVA FUNÇÃO: Renderização Visual Idêntica à Captura de Tela (Minimalista)
+  const renderPriority = (priority) => {
+    const p = priority?.toLowerCase() || ''
+    
+    if (p === 'urgente') {
+      return (
+        <span className="flex items-center gap-1.5 text-[#e02424] font-medium">
+          <ExclamationTriangleIcon className="w-[15px] h-[15px] stroke-[2]" />
+          Urgente
+        </span>
+      )
+    }
+    if (p === 'alta') {
+      return (
+        <span className="flex items-center gap-1.5 text-[#ff5a1f] font-medium">
+          <ExclamationCircleIcon className="w-[15px] h-[15px] stroke-[2]" />
+          Alta
+        </span>
+      )
+    }
+    if (p === 'média' || p === 'media') {
+      return (
+        <span className="flex items-center gap-1.5 text-[#fbc02d] font-medium">
+          <ChevronUpIcon className="w-[15px] h-[15px] stroke-[2.5]" />
+          Média
+        </span>
+      )
+    }
+    if (p === 'baixa') {
+      return (
+        <span className="flex items-center gap-1.5 text-[#3b82f6] font-medium">
+          <ChevronDownIcon className="w-[15px] h-[15px] stroke-[2.5]" />
+          Baixa
+        </span>
+      )
+    }
+    // Nenhuma / Padrão
+    return (
+      <span className="flex items-center gap-1.5 text-gray-400 font-medium">
+        <MinusIcon className="w-[15px] h-[15px] stroke-[2]" />
+        Nenhuma
+      </span>
+    )
+  }
+
   const copyTicketOpenToWhatsApp = (ticket) => {
-    const linkRastreio = `https://support-saas-five.vercel.app/rastrear/${ticket.id}`;
+    const linkRastreio = `https://support.f1saas.com.br/rastrear/${ticket.id}`;
     const text = `Olá! 🚀\n\nO seu chamado *#${ticket.ticket_number || 'S/N'}* foi registrado com sucesso em nosso sistema.\n\n📌 *Resumo:*\n*Cliente:* ${ticket.customer_name}\n*Título:* ${ticket.title}\n\nNossa equipe já está analisando a sua solicitação.\n\n👉 *ACOMPANHE O STATUS DO SEU CHAMADO AQUI:*\n${linkRastreio}\n\nQualquer dúvida, é só nos chamar por aqui!`;
     navigator.clipboard.writeText(text);
     setCopiedTicketId(ticket.id);
@@ -113,7 +161,7 @@ export function TicketListPage() {
   }
 
   const copyNpsRequestToWhatsApp = (ticket) => {
-    const linkNps = `https://support-saas-five.vercel.app/avaliar/${ticket.id}`;
+    const linkNps = `hhttps://support.f1saas.com.br/avaliar/${ticket.id}`;
     const text = `Olá! ✅\n\nPassando para avisar que o seu chamado *#${ticket.ticket_number || 'S/N'}* ("${ticket.title}") foi concluído!\n\nPara continuarmos melhorando nosso atendimento, gostaríamos muito de saber como foi a sua experiência. É bem rapidinho!\n\n👉 *CLIQUE NO LINK ABAIXO PARA AVALIAR O CHAMADO:*\n${linkNps}\n\nAgradecemos a parceria!`;
     navigator.clipboard.writeText(text);
     setCopiedNpsId(ticket.id);
@@ -192,7 +240,7 @@ export function TicketListPage() {
           </select>
         </div>
 
-        {/* 🚀 Filtro 2.5: Tipo de Chamado (Sincronizado com a NewTicketPage) */}
+        {/* Filtro 3: Tipo de Chamado */}
         <div className="relative w-full xl:w-48 shrink-0">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
             <TagIcon className="w-4 h-4" />
@@ -212,7 +260,26 @@ export function TicketListPage() {
           </select>
         </div>
 
-        {/* 🚀 Filtro 3 e 4: Bloco de Data Inicial e Final (Com Botão) */}
+        {/* 🚀 Filtro 4: Prioridade (O Dropdown também recebeu estilo minimalista!) */}
+        <div className="relative w-full xl:w-48 shrink-0">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <FlagIcon className="w-4 h-4" />
+          </div>
+          <select
+            value={priorityQuery}
+            onChange={(e) => handleFilterChange('priority', e.target.value)}
+            className="w-full border border-gray-300 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 cursor-pointer transition appearance-none"
+          >
+            <option value="">Prioridade</option>
+            <option value="Urgente">Urgente</option>
+            <option value="Alta">Alta</option>
+            <option value="Média">Média</option>
+            <option value="Baixa">Baixa</option>
+            <option value="Nenhuma">Nenhuma</option>
+          </select>
+        </div>
+
+        {/* Bloco de Data Inicial e Final */}
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto shrink-0 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
           <div className="relative w-full sm:w-36">
             <input
@@ -242,7 +309,7 @@ export function TicketListPage() {
         </div>
 
         {/* Botão de Limpar Filtros */}
-        {(searchQuery || statusQuery || typeQuery || startDateQuery || endDateQuery) && (
+        {(searchQuery || statusQuery || typeQuery || priorityQuery || startDateQuery || endDateQuery) && (
           <button
             onClick={() => {
               setSearchParams({ page: '1' })
@@ -254,11 +321,10 @@ export function TicketListPage() {
         )}
       </div>
 
-      {/* 🚀 TOTALIZADOR ABAIXO DOS FILTROS (ALINHADO À DIREITA COM DESTAQUE) */}
+      {/* TOTALIZADOR */}
       {!loading && (
         <div className="mb-4 flex items-center justify-end px-1 animate-fade-in">
           <div className="inline-flex items-center gap-2.5 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-1.5 rounded-xl text-sm font-bold shadow-sm">
-
             {totalCount} {totalCount === 1 ? 'registro encontrado' : 'registros encontrados'}
           </div>
         </div>
@@ -282,6 +348,7 @@ export function TicketListPage() {
                   <th className="p-4 w-32">Ticket</th>
                   <th className="p-4 min-w-[140px]">Cliente / Licença</th>
                   <th className="p-4 min-w-[200px]">Título do Chamado</th>
+                  <th className="p-4 min-w-[120px]">Prioridade</th> {/* 🚀 NOVA COLUNA */}
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-center">Estado (Dev)</th>
                   <th className="p-4 min-w-[120px]">Tipo de Chamado</th>
@@ -330,6 +397,11 @@ export function TicketListPage() {
                       >
                         {ticket.title}
                       </Link>
+                    </td>
+
+                    {/* 🚀 Renderização Limpa e Minimalista da Prioridade (Usando a nova função) */}
+                    <td className="p-4 align-middle text-sm whitespace-nowrap">
+                      {renderPriority(ticket.priority)}
                     </td>
                     
                     <td className="p-4 align-middle text-center">

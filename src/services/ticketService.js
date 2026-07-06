@@ -1,30 +1,25 @@
 import { supabase } from '../lib/supabase'
 
 export const ticketService = {
-  // 🔄 CRIAR NOVO CHAMADO COM AUTO-INCREMENTO INTELIGENTE
   async create(payload) {
     if (!payload?.title) throw new Error('Título é obrigatório')
     if (!payload?.customer_name) throw new Error('Nome do cliente é obrigatório')
 
-    // 1. Busca o ticket mais recente no banco para descobrir o último número gerado
     const { data: lastTickets, error: fetchError } = await supabase
       .from('tickets')
       .select('ticket_number')
       .order('created_at', { ascending: false })
       .limit(1)
 
-    let nextNumber = 1 // Número inicial caso a tabela esteja totalmente vazia
+    let nextNumber = 1 
 
     if (lastTickets && lastTickets.length > 0 && lastTickets[0].ticket_number) {
-      // Extrai apenas os números do texto (ignora espaços/letras se existirem) e soma 1
       const lastNum = parseInt(String(lastTickets[0].ticket_number).replace(/\D/g, '')) || 0
       nextNumber = lastNum + 1
     }
 
-    // 2. Adiciona o novo número sequencial ao payload
     payload.ticket_number = nextNumber.toString()
 
-    // 3. Executa a inserção do novo chamado no Supabase
     const { data, error } = await supabase
       .from('tickets')
       .insert(payload)
@@ -35,7 +30,6 @@ export const ticketService = {
     return data
   },
 
-  // 🔄 NOVO: Atualiza os dados de um chamado existente
   async update(id, payload) {
     const { data, error } = await supabase
       .from('tickets')
@@ -48,8 +42,8 @@ export const ticketService = {
     return data
   },
 
-  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com Filtros Completos (Status, Tipo e Data)
-  async list({ status, type, startDate, endDate, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
+  // 🔄 ATUALIZADO: Motor de busca em formato "Funil" com o NOVO FILTRO DE PRIORIDADE
+  async list({ status, type, priority, startDate, endDate, assignedTo, createdBy, search = '', page = 1, pageSize = 10 } = {}) {
     let query = supabase
       .from('tickets')
       .select(`
@@ -62,7 +56,6 @@ export const ticketService = {
       `, { count: 'exact' })
       .order('created_at', { ascending: false }) 
 
-    // 🎯 Filtro de Pesquisa em texto (Search)
     if (search) {
       const cleanSearch = search.replace('#', '').trim()
       const isNumeric = /^\d+$/.test(cleanSearch)
@@ -74,24 +67,40 @@ export const ticketService = {
       }
     }
 
-    // 🎯 Filtro: Status
     if (status) query = query.eq('status', status)
-    
-    // 🚀 NOVO FILTRO: Tipo de Chamado
     if (type) query = query.eq('tipo_chamado', type)
     
-    // 🎯 Filtro: Período de Data (Início e/ou Fim)
+    // 🚀 FILTRO: Prioridade
+    // ⚠️ O dropdown da tela envia o LABEL (ex: "Urgente", "Média"), mas o banco
+    // guarda o valor em outro formato (ex: "CRITICA", "MEDIA"). Por isso é
+    // necessário traduzir o label para o valor real da coluna antes do .eq,
+    // senão o filtro nunca casa com nenhuma linha.
+    const PRIORITY_LABEL_TO_DB = {
+      'Urgente': 'CRITICA',
+      'Alta': 'ALTA',
+      'Média': 'MEDIA',
+      'Media': 'MEDIA',
+      'Baixa': 'BAIXA',
+    }
+
+    if (priority) {
+      if (priority === 'Nenhuma') {
+        // Se o usuário quiser ver os sem prioridade, buscamos os vazios, nulos ou que ficaram marcados como "Selecionar" no form
+        query = query.or('priority.is.null,priority.eq."",priority.eq."Selecionar"')
+      } else {
+        const dbValue = PRIORITY_LABEL_TO_DB[priority] || priority
+        query = query.eq('priority', dbValue)
+      }
+    }
+    
     if (startDate && endDate) {
-      // Pega do inicio do dia 1 até o final do dia 2
       const start = new Date(`${startDate}T00:00:00`).toISOString()
       const end = new Date(`${endDate}T23:59:59.999`).toISOString()
       query = query.gte('created_at', start).lte('created_at', end)
     } else if (startDate) {
-      // Do dia inicial para frente
       const start = new Date(`${startDate}T00:00:00`).toISOString()
       query = query.gte('created_at', start)
     } else if (endDate) {
-      // Até o final do dia escolhido
       const end = new Date(`${endDate}T23:59:59.999`).toISOString()
       query = query.lte('created_at', end)
     }
@@ -168,7 +177,6 @@ export const ticketService = {
       payload.new_status = newStatus
     }
 
-    // 🚀 NOVIDADE: Adicionando o status antigo no payload se ele existir
     if (oldStatus) {
       payload.old_status = oldStatus
     }
@@ -205,10 +213,8 @@ export const ticketService = {
     return data
   },
 
-  // 🗑️ NOVO: Função para Arquivar/Excluir um chamado em definitivo
   async archiveTicket(id) {
     try {
-      // 1. Primeiro, apagamos o histórico associado para não dar erro de restrição (Foreign Key)
       const { error: historyError } = await supabase
         .from('ticket_history')
         .delete()
@@ -216,7 +222,6 @@ export const ticketService = {
 
       if (historyError) throw historyError
 
-      // 2. Agora apagamos o chamado principal da tabela tickets
       const { data, error: ticketError } = await supabase
         .from('tickets')
         .delete()
@@ -229,35 +234,30 @@ export const ticketService = {
       
     } catch (error) {
       console.error("Erro no serviço ao arquivar chamado:", error)
-      throw error // Repassa o erro para a tela mostrar se algo falhar
+      throw error 
     }
   },
   
-  // 📊 NOVO: Motor de agregação de dados para o Dashboard
   async getDashboardMetrics() {
-    // Busca todos os chamados abertos ou em andamento para ver o gargalo atual
     const { data, error } = await supabase
       .from('tickets')
       .select('workflow, categoria')
-      .not('status', 'eq', 'FECHADO') // Foca apenas no que está "na mesa"
+      .not('status', 'eq', 'FECHADO') 
 
     if (error) throw error
 
-    // Agrupa e conta por Workflow
     const workflowAgrupado = data.reduce((acc, ticket) => {
       const wf = ticket.workflow || 'Não classificado'
       acc[wf] = (acc[wf] || 0) + 1
       return acc
     }, {})
 
-    // Agrupa e conta por Categoria
     const categoriaAgrupada = data.reduce((acc, ticket) => {
       const cat = ticket.categoria || 'Sem categoria'
       acc[cat] = (acc[cat] || 0) + 1
       return acc
     }, {})
 
-    // Formata para arrays ordenados do maior para o menor
     const formatChartData = (obj) => {
       return Object.entries(obj)
         .map(([name, value]) => ({ name, value }))
