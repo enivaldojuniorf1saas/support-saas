@@ -9,7 +9,8 @@ import {
   ChartBarIcon, PresentationChartLineIcon, 
   ClockIcon, FaceSmileIcon, CheckBadgeIcon, BoltIcon,
   UsersIcon, UserGroupIcon, CalendarDaysIcon,
-  FunnelIcon, TagIcon, BriefcaseIcon, QuestionMarkCircleIcon
+  FunnelIcon, TagIcon, BriefcaseIcon, QuestionMarkCircleIcon,
+  FlagIcon // 🚀 Ícone de prioridade importado!
 } from '@heroicons/react/24/outline'
 import { subDays, isAfter, format, parse } from 'date-fns'
 
@@ -115,16 +116,9 @@ export function DashboardPage() {
   }
 
   const getCorNps = (nps) => {
-    // Se não tiver avaliação ainda, fica neutro
     if (!nps || nps === 0) return isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-    
-    // Notas 9 e 10: Promotores (Verde)
     if (nps >= 9) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200'
-    
-    // Notas 7 e 8: Neutros (Amarelo)
     if (nps >= 7) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200'
-    
-    // Notas 0 a 6: Detratores (Vermelho)
     return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200'
   }
 
@@ -187,6 +181,31 @@ export function DashboardPage() {
       return acc
     }, {})
     return Object.keys(contagem).map(key => ({ name: key, value: contagem[key] }))
+  }, [ticketsFiltrados])
+
+  // 🚀 NOVO: Processamento de dados de Prioridade
+  const dadosPrioridade = useMemo(() => {
+    const contagem = ticketsFiltrados.reduce((acc, t) => {
+      let p = t?.priority || 'Não definida'
+      p = p.trim().toUpperCase()
+
+      // Normalizando os dados para exibição correta
+      if (p === 'URGENTE') p = 'Crítica'
+      else if (p === 'ALTA') p = 'Alta'
+      else if (p === 'MEDIA') p = 'Média'
+      else if (p === 'BAIXA') p = 'Baixa'
+      else p = 'Não definida'
+
+      acc[p] = (acc[p] || 0) + 1
+      return acc
+    }, {})
+
+    // Ordenando da maior prioridade para a menor
+    const ordem = ['Crítica', 'Alta', 'Média', 'Baixa', 'Não definida']
+    
+    return Object.keys(contagem)
+      .map(key => ({ name: key, value: contagem[key] }))
+      .sort((a, b) => ordem.indexOf(a.name) - ordem.indexOf(b.name))
   }, [ticketsFiltrados])
 
   const dadosEstadoDev = useMemo(() => {
@@ -326,9 +345,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* 🚀 AQUI ESTÁ A CORREÇÃO: CARDS DE KPIs SEPARADOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {/* CARDS NEUTROS (Volume) */}
         {[
           { icon: PresentationChartLineIcon, label: 'Total Abertos', value: stats.total, style: isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200', iconColor: 'text-blue-500' },
           { icon: ClockIcon, label: 'Pendentes', value: stats.abertos, style: isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200', iconColor: 'text-orange-500' },
@@ -343,7 +360,6 @@ export function DashboardPage() {
           </div>
         ))}
 
-        {/* CARDS COM INTELIGÊNCIA OKR (TMR, TMA e NPS) */}
         <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between transition-colors duration-300 ${getCorTmr(stats.tmr.raw)}`}>
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 rounded-lg bg-white/50 dark:bg-black/20 text-purple-600 dark:text-purple-400"><BoltIcon className="w-5 h-5" /></div>
@@ -423,6 +439,34 @@ export function DashboardPage() {
             </div>
           </div>
 
+          {/* 🚀 NOVO GRÁFICO: Chamados por Prioridade */}
+          <div className={`p-6 rounded-xl border shadow-sm flex flex-col h-[350px] transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-wide ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+              <FlagIcon className="w-4 h-4 text-gray-400" /> Chamados por Prioridade
+            </h3>
+            <div className="flex-1 w-full min-h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  {/* Gráfico de Rosca para destacar as urgências */}
+                  <Pie data={dadosPrioridade} innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
+                    {dadosPrioridade.map((entry, index) => {
+                      // Cores fixas e semânticas baseadas na prioridade (alinhadas à lista)
+                      let cor = isDark ? '#4b5563' : '#94a3b8' 
+                      if (entry.name === 'Crítica') cor = '#ef4444' // Vermelho
+                      if (entry.name === 'Alta') cor = '#f97316'    // Laranja
+                      if (entry.name === 'Média') cor = '#eab308'   // Amarelo
+                      if (entry.name === 'Baixa') cor = '#3b82f6'   // Azul
+                      
+                      return <Cell key={`cell-prio-${index}`} fill={cor} />
+                    })}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: corCardTooltip, borderColor: corBordaTooltip }} cursor={{fill: 'transparent'}} />
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px', color: corTextoEixo }}/>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           <div className={`p-6 rounded-xl border shadow-sm flex flex-col h-[350px] transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
             <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-wide ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
               <QuestionMarkCircleIcon className="w-4 h-4 text-gray-400" /> Distribuição por Tipo
@@ -434,7 +478,7 @@ export function DashboardPage() {
                     {dadosTipoChamado.map((entry, index) => <Cell key={`cell-tipo-${index}`} fill={CORES[(index + 2) % CORES.length]} />)}
                   </Pie>
                   <Tooltip contentStyle={{ backgroundColor: corCardTooltip, borderColor: corBordaTooltip }} cursor={{fill: 'transparent'}} />
-                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px' }}/>
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px', color: corTextoEixo }}/>
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -512,6 +556,20 @@ export function DashboardPage() {
             </div>
           </div>
 
+          <div className={`p-6 rounded-xl border shadow-sm flex flex-col h-[350px] transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-wide ${isDark ? 'text-gray-200' : 'text-gray-800'}`}><UsersIcon className="w-4 h-4 text-gray-400" /> Top 5 Agentes (Abertura)</h3>
+            <div className="flex-1 w-full min-h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosAgentes} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                  <XAxis dataKey="name" tick={{fontSize: 11, fill: corTextoEixo}} stroke={corLinhaEixo} />
+                  <YAxis tick={{fontSize: 11, fill: corTextoEixo}} stroke={corLinhaEixo} />
+                  <Tooltip contentStyle={{ backgroundColor: corCardTooltip, borderColor: corBordaTooltip }} cursor={{fill: isDark ? '#1f2937' : '#f8fafc'}} />
+                  <Bar dataKey="total" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           <div className={`p-6 rounded-xl border shadow-sm flex flex-col h-[350px] lg:col-span-1 xl:col-span-2 transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
             <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-wide ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
               <UserGroupIcon className="w-4 h-4 text-gray-400" /> Tipos de Perfil (Volume)
@@ -528,19 +586,7 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className={`p-6 rounded-xl border shadow-sm flex flex-col h-[350px] transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
-            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-wide ${isDark ? 'text-gray-200' : 'text-gray-800'}`}><UsersIcon className="w-4 h-4 text-gray-400" /> Top 5 Agentes (Abertura)</h3>
-            <div className="flex-1 w-full min-h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosAgentes} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                  <XAxis dataKey="name" tick={{fontSize: 11, fill: corTextoEixo}} stroke={corLinhaEixo} />
-                  <YAxis tick={{fontSize: 11, fill: corTextoEixo}} stroke={corLinhaEixo} />
-                  <Tooltip contentStyle={{ backgroundColor: corCardTooltip, borderColor: corBordaTooltip }} cursor={{fill: isDark ? '#1f2937' : '#f8fafc'}} />
-                  <Bar dataKey="total" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          
 
         </div>
       )}

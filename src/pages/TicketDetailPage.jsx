@@ -276,7 +276,7 @@ export function TicketDetailPage() {
                         </div>
                         <div>
                             <span className="flex items-center gap-1.5 text-gray-400 text-xs font-semibold mb-1">Prioridade</span>
-                            <span className={`text-sm font-bold ${ticket.priority === 'ALTA' || ticket.priority === 'CRITICA' ? 'text-red-600' : 'text-gray-900'}`}>
+                            <span className={`text-sm font-bold ${ticket.priority === 'ALTA' || ticket.priority === 'URGENTE' ? 'text-red-600' : 'text-gray-900'}`}>
                                 {ticket.priority}
                             </span>
                         </div>
