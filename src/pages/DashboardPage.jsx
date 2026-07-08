@@ -103,16 +103,16 @@ export function DashboardPage() {
 
   const getCorTmr = (minutos) => {
     if (!minutos || minutos === 0) return isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-    if (minutos <= 30) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200'
-    if (minutos <= 45) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200'
-    return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200'
+    if (minutos <= 30) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200' // 🎉 Dentro da meta (Até 30m)
+    if (minutos <= 60) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200' // ⚠️ Alerta (Até 1h)
+    return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200' // 🚨 Fora da meta (Mais de 1h)
   }
 
   const getCorTma = (minutos) => {
     if (!minutos || minutos === 0) return isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-    if (minutos <= 120) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200' 
-    if (minutos <= 180) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200' 
-    return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200'
+    if (minutos <= 720) return isDark ? 'bg-green-950/40 border-green-900/50' : 'bg-green-50 border-green-200' // 🎉 Dentro da meta (Até 12h)
+    if (minutos <= 1440) return isDark ? 'bg-yellow-950/40 border-yellow-900/50' : 'bg-yellow-50 border-yellow-200' // ⚠️ Alerta (Até 24h)
+    return isDark ? 'bg-red-950/40 border-red-900/50' : 'bg-red-50 border-red-200' // 🚨 Fora da meta (Mais de 24h)
   }
 
   const getCorNps = (nps) => {
