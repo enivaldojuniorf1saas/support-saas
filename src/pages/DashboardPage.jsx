@@ -63,21 +63,43 @@ export function DashboardPage() {
   // ==========================================
   // 🚀 NOVA LÓGICA: DATA DE CORTE E SLA
   // ==========================================
+  // ==========================================
+  // 🚀 LÓGICA INTEGRADA: SLA DA SEMANA REAL COM TRAVA ANTI-OUTLIERS
+  // ==========================================
   const DATA_CORTE_SLA = new Date('2024-01-01T00:00:00') 
 
   const calcularSLA = (campo) => {
+    // 1. Forçamos o cálculo a olhar para a realidade dos últimos 7 dias (Semana Atual)
+    const dataCorteSemana = subDays(new Date(), 7)
+
     const ticketsValidosParaSla = ticketsFiltrados.filter(t => {
       if (!t.created_at) return false
-      return isAfter(new Date(t.created_at), DATA_CORTE_SLA)
+      // Usa apenas os tickets criados na última semana para o cálculo de tempo
+      return isAfter(new Date(t.created_at), dataCorteSemana)
     })
 
-    const validos = ticketsValidosParaSla.filter(t => t[campo] != null && t[campo] > 0)
+    // 2. Garante que possui tempo válido e aplica a sua TRAVA OPERACIONAL SELETIVA
+    const validos = ticketsValidosParaSla.filter(t => {
+      const tempoBruto = t[campo]
+      if (tempoBruto == null || tempoBruto <= 0) return false
+
+      // 🛡️ TRAVA OPERACIONAL SELETIVA (Sua regra de limpeza do passado):
+      // Se o campo for o Tempo de Resposta (TMR), ignoramos qualquer chamado com mais de 5 dias (7200 min)
+      // Se for o Tempo de Atendimento (TMA), ignoramos chamados com mais de 15 dias (21600 min)
+      if (campo === 'response_time_minutes' && tempoBruto > 7200) return false
+      if (campo === 'resolution_time_minutes' && tempoBruto > 21600) return false
+
+      return true
+    })
     
+    // Se a semana não tiver chamados válidos, evita que o código quebre retornando o traço
     if (validos.length === 0) return { texto: '-', raw: 0 }
     
+    // 3. Soma os minutos limpos da semana e faz a média
     const soma = validos.reduce((acc, t) => acc + Number(t[campo]), 0)
     const mediaMinutos = Math.round(soma / validos.length)
     
+    // 4. Formata amigavelmente para exibição na UI
     if (mediaMinutos < 60) return { texto: `${mediaMinutos}m`, raw: mediaMinutos }
     const horas = Math.floor(mediaMinutos / 60)
     const minutosRestantes = mediaMinutos % 60
