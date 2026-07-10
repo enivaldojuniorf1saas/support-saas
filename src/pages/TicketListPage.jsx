@@ -161,7 +161,7 @@ export function TicketListPage() {
   }
 
   const copyNpsRequestToWhatsApp = (ticket) => {
-    const linkNps = `hhttps://support.f1saas.com.br/avaliar/${ticket.id}`;
+    const linkNps = `https://support.f1saas.com.br/avaliar/${ticket.id}`;
     const text = `Olá! ✅\n\nPassando para avisar que o seu chamado *#${ticket.ticket_number || 'S/N'}* ("${ticket.title}") foi concluído!\n\nPara continuarmos melhorando nosso atendimento, gostaríamos muito de saber como foi a sua experiência. É bem rapidinho!\n\n👉 *CLIQUE NO LINK ABAIXO PARA AVALIAR O CHAMADO:*\n${linkNps}\n\nAgradecemos a parceria!`;
     navigator.clipboard.writeText(text);
     setCopiedNpsId(ticket.id);
