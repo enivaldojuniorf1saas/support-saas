@@ -12,7 +12,7 @@ import {
   TagIcon, 
   BriefcaseIcon,
   ChatBubbleLeftRightIcon,
-  PencilSquareIcon // <-- Ícone do botão de edição adicionado aqui
+  PencilSquareIcon
 } from '@heroicons/react/24/outline'
 
 const NEXT_STATUS = {
@@ -205,6 +205,15 @@ export function TicketDetailPage() {
 
     const nextStatuses = NEXT_STATUS[ticket.status] ?? []
 
+    // 🚀 Função para formatar os minutos acumulados da pausa de forma amigável
+    const formatarTempoPausado = (minutos) => {
+        if (!minutos || minutos <= 0) return null;
+        if (minutos < 60) return `${Math.round(minutos)}m`;
+        const horas = Math.floor(minutos / 60);
+        const minRestantes = Math.round(minutos % 60);
+        return `${horas}h ${minRestantes}m`;
+    };
+
     return (
         <div className="min-h-screen bg-gray-50/50 pb-12">
             
@@ -281,6 +290,21 @@ export function TicketDetailPage() {
                             </span>
                         </div>
                     </div>
+
+                    {/* 🚀 BANNER DE PROTEÇÃO DO SLA (Só aparece se houver tempo pausado) */}
+                    {ticket.accumulated_pause_minutes > 0 && (
+                        <div className="flex items-center gap-2 p-3 mt-6 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-xl text-xs font-semibold shadow-sm">
+                            <ClockIcon className="w-5 h-5 flex-shrink-0" />
+                            <p>
+                                O SLA deste chamado foi pausado por 
+                                <span className="font-bold mx-1">
+                                    {formatarTempoPausado(ticket.accumulated_pause_minutes)}
+                                </span> 
+                                enquanto esteve com a Engenharia ou Aguardando Cliente. 
+                                <span className="font-normal opacity-80 block sm:inline sm:ml-1">Este tempo já foi descontado da sua métrica final.</span>
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6 sm:p-8">
