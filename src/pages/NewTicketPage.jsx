@@ -224,7 +224,7 @@ export function NewTicketPage() {
                                     <span className="animate-spin">⌛</span> Processando relato...
                                 </>
                             ) : (
-                                'Gerar Padrão Ocara na Descrição 👇'
+                                'Gerar descrição 👇'
                             )}
                         </button>
                     </div>
