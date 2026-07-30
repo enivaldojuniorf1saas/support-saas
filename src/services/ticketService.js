@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 
+
 export const ticketService = {
   async create(payload) {
     if (!payload?.title) throw new Error('Título é obrigatório')
@@ -17,6 +18,8 @@ export const ticketService = {
       const lastNum = parseInt(String(lastTickets[0].ticket_number).replace(/\D/g, '')) || 0
       nextNumber = lastNum + 1
     }
+
+    
 
     payload.ticket_number = nextNumber.toString()
 

@@ -6,7 +6,10 @@ import { useNavigate, Link, useParams } from 'react-router-dom'
 import { ticketService } from '../services/ticketService'
 import { useAuthContext } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { Bug, Sparkles, Wrench, Headphones } from 'lucide-react'
+import { Bug, Sparkles, Wrench, Headphones, Bot } from 'lucide-react'
+
+// NOVO: Importação do cliente do Supabase para acionar a Edge Function
+import { supabase } from '../lib/supabase' 
 
 const schema = z.object({
     title: z.string().min(5, 'Título deve ter pelo menos 5 caracteres'),
@@ -35,6 +38,10 @@ export function NewTicketPage() {
     const [submitError, setSubmitError] = useState('')
     const [isLoadingData, setIsLoadingData] = useState(isEditing)
 
+    // NOVO: Estados do Assistente IA
+    const [rawText, setRawText] = useState('')
+    const [isFormatting, setIsFormatting] = useState(false)
+
     const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -57,7 +64,6 @@ export function NewTicketPage() {
         if (isEditing) {
             ticketService.getById(id)
                 .then(ticket => {
-                    // Blindagem adicionada aqui (ticket?.) para evitar quebra de tela caso a busca falhe
                     const dbCustomer = ticket?.customer_name ? ticket.customer_name.toUpperCase() : ''
                     const dbSolicitante = ticket?.solicitante || ''
 
@@ -106,7 +112,6 @@ export function NewTicketPage() {
         }
     }
 
-    // 🗑️ NOVA FUNÇÃO: Arquivar/Cancelar chamado
     const handleArchive = async () => {
         const confirmar = window.confirm('Tem certeza que deseja arquivar este chamado? Ele será cancelado e ocultado das métricas ativas.')
         if (!confirmar) return
@@ -121,7 +126,40 @@ export function NewTicketPage() {
         }
     }
 
-    // Variáveis de estilo ATUALIZADAS (com cursor-pointer adicionado)
+    // NOVO: Função que se comunica com a Edge Function da IA
+    // NOVO: Função que se comunica com a Edge Function da IA
+    const handleFormatOcara = async () => {
+        if (!rawText.trim()) return
+        
+        setIsFormatting(true)
+        try {
+            // CORREÇÃO 1: Passamos o "rawText" (texto do campo) para a propriedade "relato"
+            const { data, error } = await supabase.functions.invoke('format-ocara-card', {
+                body: { relato: rawText }
+            })
+
+            if (error) {
+                console.error("Erro retornado pelo Supabase:", error)
+                alert("Falha ao comunicar com a IA. Tente novamente.")
+                return
+            }
+
+            // CORREÇÃO 2: Usamos o setValue do react-hook-form para preencher os inputs oficiais
+            if (data?.titulo && data?.descricao) {
+                setValue('title', data.titulo)             // Preenche o input de Título
+                setValue('description', data.descricao)    // Preenche o textarea de Descrição
+            } else {
+                console.error("Formato inesperado retornado pela IA:", data)
+            }
+            
+        } catch (error) {
+            console.error("Erro ao formatar card com IA:", error)
+            alert("Falha ao comunicar com a IA. Tente novamente.")
+        } finally {
+            setIsFormatting(false)
+        }
+    }
+
     const inputClass = `w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition-colors cursor-pointer ${
         isDark 
             ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500' 
@@ -156,6 +194,40 @@ export function NewTicketPage() {
                 )}
 
                 <form onSubmit={handleSubmit(onSubmit)} noValidate className={`rounded-xl border p-6 space-y-6 transition-colors duration-300 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+
+                    {/* NOVO: Bloco Visual do Assistente IA */}
+                    <div className={`p-5 rounded-lg border shadow-sm transition-colors ${isDark ? 'bg-blue-900/10 border-blue-800/50' : 'bg-blue-50/50 border-blue-200'}`}>
+                        <h3 className={`text-sm font-semibold mb-2 flex items-center gap-2 ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>
+                            <Bot className="w-5 h-5" />
+                            Assistente de Triagem (Padrão Ocara)
+                        </h3>
+                        <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            Cole o relato bruto do cliente (WhatsApp, E-mail) aqui. A IA organizará os dados técnicos no padrão da Engenharia.
+                        </p>
+                        
+                        <textarea
+                            className={`${inputClass} mb-3 cursor-text`}
+                            rows={3}
+                            placeholder="Ex: O cliente do posto reclamou que tentou filtrar pelo nome, mas a tela piscou e não funcionou..."
+                            value={rawText}
+                            onChange={(e) => setRawText(e.target.value)}
+                        />
+                        
+                        <button
+                            type="button"
+                            onClick={handleFormatOcara}
+                            disabled={isFormatting || !rawText.trim()}
+                            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:opacity-60 transition-colors flex items-center gap-2"
+                        >
+                            {isFormatting ? (
+                                <>
+                                    <span className="animate-spin">⌛</span> Processando relato...
+                                </>
+                            ) : (
+                                'Gerar Padrão Ocara na Descrição 👇'
+                            )}
+                        </button>
+                    </div>
 
                     <input type="hidden" {...register('tipo_ticket')} />
 
@@ -309,7 +381,7 @@ export function NewTicketPage() {
 
                     <div>
                         <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Descrição</label>
-                        <textarea {...register('description')} rows={3} className={`${inputClass} resize-none cursor-text`} />
+                        <textarea {...register('description')} rows={8} className={`${inputClass} resize-y cursor-text`} />
                     </div>
 
                     <div className={`border-t pt-6 transition-colors ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
@@ -345,7 +417,6 @@ export function NewTicketPage() {
 
                     <div className={`flex items-center justify-end gap-3 border-t pt-6 transition-colors ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
                         
-                        {/* 🔘 NOVO: Botão de Arquivar (Aparece apenas na Edição) */}
                         {isEditing && (
                             <button
                                 type="button"
