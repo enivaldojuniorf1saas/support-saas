@@ -30,7 +30,7 @@ REGRAS:
 MODELO DO JSON ESPERADO:
 {
   "titulo": "Resumo do problema em poucas palavras",
-  "descricao": "**Tipo:** [Bug / Feature / Chore]\\n**Persona Envolvida:** [Ex: Administrador]\\n**Contexto / Dor do Cliente:** [Resumo]\\n\\n**O que precisa ser feito / Cenário:**\\n[Descreva tecnicamente]\\n\\n**Passos para Reproduzir:**\\n1. [Passo 1]\\n2. [Passo 2]\\n\\n**Direcionamento Visual:** \\n> [⚠️ EQUIPE DE SUPORTE: COLOQUE AQUI O PRINT/VÍDEO DA TELA E O ID DO USUÁRIO]"
+  "descricao": "**Tipo:** [Bug / Feature / Chore]\\n**Persona Envolvida:** [Ex: Administrador]\\n**Contexto/Dor do Cliente:** [Resumo]\\n\\n**Cenário:**\\n[Descreva tecnicamente]\\n\\n**Passos para Reproduzir:**\\n1. [Passo 1]\\n2. [Passo 2]\\n\\n**Direcionamento Visual:** \\n> [⚠️ EQUIPE DE SUPORTE: COLOQUE AQUI O PRINT/VÍDEO DA TELA E O ID DO USUÁRIO]"
 }`
 
     const apiKey = Deno.env.get('AI_API_KEY')

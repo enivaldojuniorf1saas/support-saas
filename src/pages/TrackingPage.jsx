@@ -21,8 +21,7 @@ export function TrackingPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
 
-    // 🚀 FUNÇÃO DE BUSCA HÍBRIDA (Inteligente para UUID e Número Sequencial)
-    // 🚀 FUNÇÃO DE BUSCA HÍBRIDA CORRIGIDA (Sem a coluna 'subject')
+    // 🚀 FUNÇÃO DE BUSCA HÍBRIDA
     const executeSearch = useCallback(async (targetCode) => {
         const cleanCode = targetCode?.trim()
         if (!cleanCode) return
@@ -35,11 +34,10 @@ export function TrackingPage() {
             // Identifica se é UUID (Link) ou número sequencial (Digitado)
             const isUuid = cleanCode.length > 10 || cleanCode.includes('-');
 
-            // ⚠️ ATENÇÃO: Removido completamente qualquer menção a 'subject' ou 'title' temporariamente
-            // Vamos trazer apenas o básico essencial para a tela funcionar e não dar erro de coluna.
+            // 💡 INCLUÍMOS O 'title' DE VOLTA NO SELECT PARA TRAZER O NOME REAL DO CHAMADO
             let query = supabase
                 .from('tickets')
-                .select('id, ticket_number, status, created_at, updated_at'); 
+                .select('id, ticket_number, title, status, created_at, updated_at'); 
 
             if (isUuid) {
                 query = query.eq('id', cleanCode);
@@ -52,8 +50,7 @@ export function TrackingPage() {
             if (fetchError) throw fetchError
             if (!data) throw new Error('Chamado não encontrado')
 
-            // Como tiramos a coluna do select para não quebrar, injetamos um texto padrão amigável
-            // ou você pode destrocar para 'title' se tiver certeza que a coluna se chama 'title'.
+            // Agora usamos o title real vindo do banco (com o fallback de segurança)
             setTicketData({
                 ...data,
                 title: data.title || `Chamado de Suporte Técnico`
@@ -67,7 +64,7 @@ export function TrackingPage() {
         }
     }, [])
 
-    // Dispara a busca automática assim que o ID vindo da URL (Link do WhatsApp) estiver pronto
+    // Dispara a busca automática assim que o ID vindo da URL estiver pronto
     useEffect(() => {
         if (id) {
             setTicketCode(id)
@@ -94,7 +91,7 @@ export function TrackingPage() {
         const Icon = current.icon
 
         return (
-            <div className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-bold ${current.color}`}>
+            <div className={`inline-flex items-center px-3 py-1.5 rounded-full border text-xs font-bold ${current.color} shadow-sm`}>
                 <Icon className="w-4 h-4 mr-1.5" />
                 {current.label}
             </div>
@@ -137,7 +134,7 @@ export function TrackingPage() {
                         <button
                             type="submit"
                             disabled={isLoading || !ticketCode.trim()}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center cursor-pointer"
+                            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center cursor-pointer shadow-sm"
                         >
                             {isLoading ? 'Buscando...' : (
                                 <>
@@ -150,39 +147,51 @@ export function TrackingPage() {
                     
                     {/* MENSAGEM DE ERRO */}
                     {error && (
-                        <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-xl font-medium animate-fade-in">
-                            ⚠️ {error}
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl font-medium animate-fade-in flex items-center">
+                            <ExclamationCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                            {error}
                         </div>
                     )}
                 </div>
 
                 {/* CARD DE RESULTADO */}
                 {ticketData && (
-                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 animate-fade-in">
-                        <div className="flex justify-between items-start mb-6">
-                            <div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                                    Chamado #{ticketData.ticket_number || '---'}
-                                </p>
-                                <h3 className="text-lg font-bold text-gray-900">
-                                    {ticketData.title || 'Sem título especificado'}
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sm:p-8 animate-fade-in relative overflow-hidden">
+                        {/* Faixa decorativa no topo do card */}
+                        <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+                            <div className="flex-1 pr-4">
+                                {/* 🚀 ETIQUETA DESTACADA DO NÚMERO DO TICKET */}
+                                <span className="inline-block px-3 py-1 text-xs font-bold text-blue-700 bg-blue-100 rounded-full mb-3 border border-blue-200">
+                                    Ticket #{ticketData.ticket_number || '---'}
+                                </span>
+                                
+                                {/* 🚀 TÍTULO REAL DO CHAMADO */}
+                                <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                                    {ticketData.title}
                                 </h3>
                             </div>
-                            {renderStatusBadge(ticketData.status)}
+                            
+                            <div className="shrink-0 mt-1 sm:mt-0">
+                                {renderStatusBadge(ticketData.status)}
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                            <div>
-                                <p className="text-xs text-gray-500 mb-1">Data de Abertura</p>
-                                <p className="text-sm font-semibold text-gray-900">
+                        <div className="grid grid-cols-2 gap-6 pt-5 border-t border-gray-100">
+                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                <p className="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">Data de Abertura</p>
+                                <p className="text-sm font-bold text-gray-900 flex items-center">
+                                    <ClockIcon className="w-4 h-4 mr-1.5 text-gray-400" />
                                     {new Date(ticketData.created_at).toLocaleDateString('pt-BR', {
                                         day: '2-digit', month: 'short', year: 'numeric'
                                     })}
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-xs text-gray-500 mb-1">Última Atualização</p>
-                                <p className="text-sm font-semibold text-gray-900">
+                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                <p className="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">Última Atualização</p>
+                                <p className="text-sm font-bold text-gray-900 flex items-center">
+                                    <ClockIcon className="w-4 h-4 mr-1.5 text-gray-400" />
                                     {new Date(ticketData.updated_at).toLocaleDateString('pt-BR', {
                                         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                                     })}
