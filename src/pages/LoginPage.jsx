@@ -39,7 +39,7 @@ export function LoginPage() {
             {/* ========================================================= */}
             <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-blue-50">
                 <img 
-                    src="/login1.png" 
+                    src="/suporte.png" 
                     alt="Equipe de Suporte Técnico F1" 
                     className="absolute inset-0 w-full h-full object-cover object-center"
                 />
