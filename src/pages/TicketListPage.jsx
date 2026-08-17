@@ -188,13 +188,6 @@ export function TicketListPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            to="/importar"
-            className="inline-flex items-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition"
-          >
-            <ArrowUpTrayIcon className="w-4 h-4 text-gray-500" />
-            Carga em Massa (CSV)
-          </Link>
-          <Link
             to="/chamados/novo"
             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md transition"
           >
